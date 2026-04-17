@@ -41,7 +41,22 @@ use providers::aws::checks::iam::{
     iam_user_no_setup_initial_access_key::IamUserNoSetupInitialAccessKey,
     iam_user_two_active_access_key::IamUserTwoActiveAccessKey,
 };
+use providers::aws::checks::s3::{
+    s3_account_level_public_access_blocks::S3AccountLevelPublicAccessBlocks,
+    s3_bucket_acl_prohibited::S3BucketAclProhibited,
+    s3_bucket_cross_account_access::S3BucketCrossAccountAccess,
+    s3_bucket_default_encryption::S3BucketDefaultEncryption,
+    s3_bucket_kms_encryption::S3BucketKmsEncryption,
+    s3_bucket_level_public_access_block::S3BucketLevelPublicAccessBlock,
+    s3_bucket_no_mfa_delete::S3BucketNoMfaDelete,
+    s3_bucket_object_lock::S3BucketObjectLock,
+    s3_bucket_object_versioning::S3BucketObjectVersioning,
+    s3_bucket_public_access::S3BucketPublicAccess,
+    s3_bucket_secure_transport_policy::S3BucketSecureTransportPolicy,
+    s3_bucket_server_access_logging_enabled::S3BucketServerAccessLoggingEnabled,
+};
 use providers::aws::services::iam::IamService;
+use providers::aws::services::s3::S3Service;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -177,6 +192,24 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Build the complete list of S3 check instances.
+fn all_s3_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(S3BucketPublicAccess),
+        Box::new(S3BucketAclProhibited),
+        Box::new(S3AccountLevelPublicAccessBlocks),
+        Box::new(S3BucketLevelPublicAccessBlock),
+        Box::new(S3BucketDefaultEncryption),
+        Box::new(S3BucketKmsEncryption),
+        Box::new(S3BucketSecureTransportPolicy),
+        Box::new(S3BucketServerAccessLoggingEnabled),
+        Box::new(S3BucketNoMfaDelete),
+        Box::new(S3BucketObjectVersioning),
+        Box::new(S3BucketObjectLock),
+        Box::new(S3BucketCrossAccountAccess),
+    ]
+}
+
 /// Build the complete list of IAM check instances.
 fn all_iam_checks() -> Vec<Box<dyn check::Check>> {
     vec![
@@ -208,10 +241,12 @@ fn all_iam_checks() -> Vec<Box<dyn check::Check>> {
     ]
 }
 
-/// Run all IAM checks against a live AWS account.
+/// Run all checks (IAM + S3) against a live AWS account.
 async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
-    println!("  [scan] Fetching IAM state…");
+    let mut findings: Vec<CheckReport> = Vec::new();
 
+    // ── IAM ──────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching IAM state…");
     let iam_service = match IamService::new(&provider.config, provider.account_id.clone()).await {
         Ok(svc) => svc,
         Err(e) => {
@@ -219,7 +254,6 @@ async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
             return vec![];
         }
     };
-
     println!(
         "  [scan] IAM state fetched — {} users, {} roles, {} groups, {} policies, {} credential report rows",
         iam_service.users.len(),
@@ -229,13 +263,37 @@ async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
         iam_service.credential_report.len(),
     );
 
-    let checks = all_iam_checks();
-    println!("  [scan] Running {} IAM checks…", checks.len());
+    let iam_checks = all_iam_checks();
+    println!("  [scan] Running {} IAM checks…", iam_checks.len());
+    for c in &iam_checks {
+        findings.extend(c.execute(&iam_service));
+    }
 
-    let mut findings: Vec<CheckReport> = Vec::new();
-    for c in &checks {
-        let results = c.execute(&iam_service);
-        findings.extend(results);
+    // ── S3 ───────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching S3 state…");
+    let s3_service = match S3Service::new(&provider.config, provider.account_id.clone()).await {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching S3 state: {:#}", e);
+            // Don't abort the whole scan — IAM findings are still valid
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (IAM only) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] S3 state fetched — {} buckets",
+        s3_service.buckets.len(),
+    );
+
+    let s3_checks = all_s3_checks();
+    println!("  [scan] Running {} S3 checks…", s3_checks.len());
+    for c in &s3_checks {
+        findings.extend(c.execute(&s3_service));
     }
 
     let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
