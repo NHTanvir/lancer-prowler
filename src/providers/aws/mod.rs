@@ -47,8 +47,12 @@ impl AwsProvider {
             .await
             .context("Failed to get AWS identity - are credentials configured?")?;
 
-        let account_id = identity.account().unwrap_or("unknown").to_string();
-        let identity_arn = identity.arn().unwrap_or("unknown").to_string();
+        let account_id = identity.account()
+            .context("STS get_caller_identity returned no account ID")?
+            .to_string();
+        let identity_arn = identity.arn()
+            .context("STS get_caller_identity returned no ARN")?
+            .to_string();
 
         let resolved_regions = if regions.is_empty() {
             // No regions specified — use the standard commercial partition list.

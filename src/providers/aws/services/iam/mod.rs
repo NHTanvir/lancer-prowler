@@ -1,6 +1,5 @@
 //! IAM service — bulk-fetches all IAM state once per scan.
 //! The data structures and fetch helpers are consumed by Week-3 checks.
-#![allow(dead_code)]
 
 use anyhow::Context;
 use aws_sdk_iam::error::ProvideErrorMetadata;
@@ -10,6 +9,7 @@ use std::sync::Arc;
 
 // ── Data structures ──────────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 pub struct IamAccessKey {
     pub access_key_id: String,
     pub status: String, // "Active" | "Inactive"
@@ -17,6 +17,7 @@ pub struct IamAccessKey {
     pub last_used_date: Option<String>,
 }
 
+#[allow(dead_code)]
 pub struct IamUser {
     pub user_id: String,
     pub user_name: String,
@@ -28,6 +29,7 @@ pub struct IamUser {
     pub inline_policies: Vec<String>,
 }
 
+#[allow(dead_code)]
 pub struct IamPasswordPolicy {
     pub minimum_password_length: Option<i32>,
     pub require_uppercase: bool,
@@ -40,6 +42,7 @@ pub struct IamPasswordPolicy {
     pub expire_passwords: bool,
 }
 
+#[allow(dead_code)]
 pub struct IamRole {
     pub role_id: String,
     pub role_name: String,
@@ -49,6 +52,7 @@ pub struct IamRole {
     pub inline_policies: Vec<String>,
 }
 
+#[allow(dead_code)]
 pub struct IamGroup {
     pub group_id: String,
     pub group_name: String,
@@ -57,6 +61,7 @@ pub struct IamGroup {
     pub inline_policies: Vec<String>,
 }
 
+#[allow(dead_code)]
 pub struct IamPolicy {
     pub policy_id: String,
     pub policy_name: String,
@@ -66,6 +71,7 @@ pub struct IamPolicy {
     pub attachment_count: i32,
 }
 
+#[allow(dead_code)]
 pub struct CredentialReportEntry {
     pub user: String,
     pub arn: String,
@@ -83,6 +89,7 @@ pub struct CredentialReportEntry {
     pub access_key_2_last_used_date: String,
 }
 
+#[allow(dead_code)]
 pub struct IamService {
     pub users: Vec<IamUser>,
     pub roles: Vec<IamRole>,
@@ -95,6 +102,7 @@ pub struct IamService {
 
 // ── IamService::new ───────────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 impl IamService {
     pub async fn new(
         config: &aws_config::SdkConfig,
@@ -118,7 +126,13 @@ impl IamService {
             )?;
 
         // Credential report requires sequential generate → poll → get
-        let credential_report = fetch_credential_report(&client).await.unwrap_or_default();
+        let credential_report = match fetch_credential_report(&client).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!("Failed to fetch credential report: {:#}", e);
+                vec![]
+            }
+        };
 
         Ok(Self {
             users: users_result,
@@ -134,6 +148,7 @@ impl IamService {
 
 // ── Helper: fetch users (with access keys + MFA per user) ────────────────────
 
+#[allow(dead_code)]
 async fn fetch_users(client: Arc<IamClient>) -> anyhow::Result<Vec<IamUser>> {
     let mut users: Vec<IamUser> = Vec::new();
 
@@ -148,29 +163,13 @@ async fn fetch_users(client: Arc<IamClient>) -> anyhow::Result<Vec<IamUser>> {
                 .password_last_used()
                 .map(|dt| dt.to_string());
 
-            // Access keys for this user
-            let access_keys =
-                fetch_access_keys_for_user(Arc::clone(&client), &user_name)
-                    .await
-                    .unwrap_or_default();
-
-            // MFA devices for this user
-            let mfa_devices =
-                fetch_mfa_devices_for_user(Arc::clone(&client), &user_name)
-                    .await
-                    .unwrap_or_default();
-
-            // Attached managed policies
-            let attached_policies =
-                fetch_user_attached_policies(Arc::clone(&client), &user_name)
-                    .await
-                    .unwrap_or_default();
-
-            // Inline policy names
-            let inline_policies =
-                fetch_user_inline_policies(Arc::clone(&client), &user_name)
-                    .await
-                    .unwrap_or_default();
+            // Fetch access keys, MFA devices, and policies in parallel
+            let (access_keys, mfa_devices, attached_policies, inline_policies) = tokio::join!(
+                async { fetch_access_keys_for_user(Arc::clone(&client), &user_name).await.unwrap_or_else(|e| { tracing::warn!("access keys fetch failed for {}: {:#}", user_name, e); vec![] }) },
+                async { fetch_mfa_devices_for_user(Arc::clone(&client), &user_name).await.unwrap_or_else(|e| { tracing::warn!("MFA devices fetch failed for {}: {:#}", user_name, e); vec![] }) },
+                async { fetch_user_attached_policies(Arc::clone(&client), &user_name).await.unwrap_or_else(|e| { tracing::warn!("attached policies fetch failed for {}: {:#}", user_name, e); vec![] }) },
+                async { fetch_user_inline_policies(Arc::clone(&client), &user_name).await.unwrap_or_else(|e| { tracing::warn!("inline policies fetch failed for {}: {:#}", user_name, e); vec![] }) },
+            );
 
             users.push(IamUser {
                 user_id,
@@ -188,6 +187,7 @@ async fn fetch_users(client: Arc<IamClient>) -> anyhow::Result<Vec<IamUser>> {
     Ok(users)
 }
 
+#[allow(dead_code)]
 async fn fetch_access_keys_for_user(
     client: Arc<IamClient>,
     user_name: &str,
@@ -240,6 +240,7 @@ async fn fetch_access_keys_for_user(
     Ok(keys)
 }
 
+#[allow(dead_code)]
 async fn fetch_mfa_devices_for_user(
     client: Arc<IamClient>,
     user_name: &str,
@@ -268,6 +269,7 @@ async fn fetch_mfa_devices_for_user(
     Ok(serials)
 }
 
+#[allow(dead_code)]
 async fn fetch_user_attached_policies(
     client: Arc<IamClient>,
     user_name: &str,
@@ -298,6 +300,7 @@ async fn fetch_user_attached_policies(
     Ok(policy_arns)
 }
 
+#[allow(dead_code)]
 async fn fetch_user_inline_policies(
     client: Arc<IamClient>,
     user_name: &str,
@@ -328,6 +331,7 @@ async fn fetch_user_inline_policies(
 
 // ── Helper: fetch roles ───────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 async fn fetch_roles(client: Arc<IamClient>) -> anyhow::Result<Vec<IamRole>> {
     let mut roles: Vec<IamRole> = Vec::new();
 
@@ -337,14 +341,10 @@ async fn fetch_roles(client: Arc<IamClient>) -> anyhow::Result<Vec<IamRole>> {
         for r in page.roles() {
             let role_name = r.role_name().to_string();
 
-            let attached_policies =
-                fetch_role_attached_policies(Arc::clone(&client), &role_name)
-                    .await
-                    .unwrap_or_default();
-            let inline_policies =
-                fetch_role_inline_policies(Arc::clone(&client), &role_name)
-                    .await
-                    .unwrap_or_default();
+            let (attached_policies, inline_policies) = tokio::join!(
+                async { fetch_role_attached_policies(Arc::clone(&client), &role_name).await.unwrap_or_else(|e| { tracing::warn!("attached policies fetch failed for role {}: {:#}", role_name, e); vec![] }) },
+                async { fetch_role_inline_policies(Arc::clone(&client), &role_name).await.unwrap_or_else(|e| { tracing::warn!("inline policies fetch failed for role {}: {:#}", role_name, e); vec![] }) },
+            );
 
             roles.push(IamRole {
                 role_id: r.role_id().to_string(),
@@ -363,6 +363,7 @@ async fn fetch_roles(client: Arc<IamClient>) -> anyhow::Result<Vec<IamRole>> {
     Ok(roles)
 }
 
+#[allow(dead_code)]
 async fn fetch_role_attached_policies(
     client: Arc<IamClient>,
     role_name: &str,
@@ -393,6 +394,7 @@ async fn fetch_role_attached_policies(
     Ok(policy_arns)
 }
 
+#[allow(dead_code)]
 async fn fetch_role_inline_policies(
     client: Arc<IamClient>,
     role_name: &str,
@@ -423,6 +425,7 @@ async fn fetch_role_inline_policies(
 
 // ── Helper: fetch groups ──────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 async fn fetch_groups(client: Arc<IamClient>) -> anyhow::Result<Vec<IamGroup>> {
     let mut groups: Vec<IamGroup> = Vec::new();
 
@@ -432,14 +435,10 @@ async fn fetch_groups(client: Arc<IamClient>) -> anyhow::Result<Vec<IamGroup>> {
         for g in page.groups() {
             let group_name = g.group_name().to_string();
 
-            let attached_policies =
-                fetch_group_attached_policies(Arc::clone(&client), &group_name)
-                    .await
-                    .unwrap_or_default();
-            let inline_policies =
-                fetch_group_inline_policies(Arc::clone(&client), &group_name)
-                    .await
-                    .unwrap_or_default();
+            let (attached_policies, inline_policies) = tokio::join!(
+                async { fetch_group_attached_policies(Arc::clone(&client), &group_name).await.unwrap_or_else(|e| { tracing::warn!("attached policies fetch failed for group {}: {:#}", group_name, e); vec![] }) },
+                async { fetch_group_inline_policies(Arc::clone(&client), &group_name).await.unwrap_or_else(|e| { tracing::warn!("inline policies fetch failed for group {}: {:#}", group_name, e); vec![] }) },
+            );
 
             groups.push(IamGroup {
                 group_id: g.group_id().to_string(),
@@ -454,6 +453,7 @@ async fn fetch_groups(client: Arc<IamClient>) -> anyhow::Result<Vec<IamGroup>> {
     Ok(groups)
 }
 
+#[allow(dead_code)]
 async fn fetch_group_attached_policies(
     client: Arc<IamClient>,
     group_name: &str,
@@ -484,6 +484,7 @@ async fn fetch_group_attached_policies(
     Ok(policy_arns)
 }
 
+#[allow(dead_code)]
 async fn fetch_group_inline_policies(
     client: Arc<IamClient>,
     group_name: &str,
@@ -514,6 +515,7 @@ async fn fetch_group_inline_policies(
 
 // ── Helper: fetch customer-managed policies ───────────────────────────────────
 
+#[allow(dead_code)]
 async fn fetch_customer_policies(client: Arc<IamClient>) -> anyhow::Result<Vec<IamPolicy>> {
     let mut policies: Vec<IamPolicy> = Vec::new();
 
@@ -546,7 +548,7 @@ async fn fetch_customer_policies(client: Arc<IamClient>) -> anyhow::Result<Vec<I
                         .and_then(|pv| pv.document())
                         .map(|d| {
                             // URL-decode the document (AWS returns URL-encoded JSON)
-                            urlencoding_decode(d)
+                            url_decode(d)
                         })
                         .unwrap_or_default(),
                     Err(e) => {
@@ -572,40 +574,36 @@ async fn fetch_customer_policies(client: Arc<IamClient>) -> anyhow::Result<Vec<I
     Ok(policies)
 }
 
-/// Minimal URL percent-decode for policy documents returned by IAM.
-fn urlencoding_decode(s: &str) -> String {
-    // The document may be URL-encoded; use a simple approach.
-    // We avoid adding a new crate dependency — handle common cases.
-    let mut out = String::with_capacity(s.len());
-    let bytes = s.as_bytes();
+/// URL percent-decode for policy documents returned by IAM.
+/// Builds a byte Vec first, then converts to String, avoiding unsound byte-as-char casts.
+#[allow(dead_code)]
+fn url_decode(input: &str) -> String {
+    let bytes = input.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(input.len());
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            let hi = bytes[i + 1];
-            let lo = bytes[i + 2];
-            if let (Some(h), Some(l)) = (hex_val(hi), hex_val(lo)) {
-                out.push((h << 4 | l) as char);
-                i += 3;
-                continue;
+            if let Ok(s) = std::str::from_utf8(&bytes[i+1..i+3]) {
+                if let Ok(b) = u8::from_str_radix(s, 16) {
+                    out.push(b);
+                    i += 3;
+                    continue;
+                }
             }
+        } else if bytes[i] == b'+' {
+            out.push(b' ');
+            i += 1;
+            continue;
         }
-        out.push(bytes[i] as char);
+        out.push(bytes[i]);
         i += 1;
     }
-    out
-}
-
-fn hex_val(b: u8) -> Option<u8> {
-    match b {
-        b'0'..=b'9' => Some(b - b'0'),
-        b'a'..=b'f' => Some(b - b'a' + 10),
-        b'A'..=b'F' => Some(b - b'A' + 10),
-        _ => None,
-    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 // ── Helper: password policy ───────────────────────────────────────────────────
 
+#[allow(dead_code)]
 async fn fetch_password_policy(
     client: Arc<IamClient>,
 ) -> anyhow::Result<Option<IamPasswordPolicy>> {
@@ -643,6 +641,7 @@ async fn fetch_password_policy(
 
 // ── Helper: credential report ─────────────────────────────────────────────────
 
+#[allow(dead_code)]
 async fn fetch_credential_report(
     client: &Arc<IamClient>,
 ) -> anyhow::Result<Vec<CredentialReportEntry>> {
@@ -706,6 +705,10 @@ async fn fetch_credential_report(
         // access_key_2_active, access_key_2_last_rotated, access_key_2_last_used_date,
         // access_key_2_last_used_region, access_key_2_last_used_service,
         // cert_1_active, cert_1_last_rotated, cert_2_active, cert_2_last_rotated
+        if record.len() < 22 {
+            tracing::warn!("Credential report row has {} columns, expected >= 22, skipping", record.len());
+            continue;
+        }
         let get = |idx: usize| record.get(idx).unwrap_or("").to_string();
         let bool_field = |idx: usize| record.get(idx).unwrap_or("false") == "true";
 
