@@ -17,10 +17,17 @@ pub fn write_csv(findings: &[CheckReport], path: &str) -> anyhow::Result<()> {
         "provider",
         "service",
         "account_id",
+        "compliance",
         "timestamp",
     ])?;
 
     for f in findings {
+        let compliance = f
+            .compliance
+            .iter()
+            .map(|c| format!("{}:{}", c.framework, c.control_id))
+            .collect::<Vec<_>>()
+            .join("|");
         writer.write_record([
             &f.check_id,
             &f.check_name,
@@ -33,6 +40,7 @@ pub fn write_csv(findings: &[CheckReport], path: &str) -> anyhow::Result<()> {
             &f.provider,
             &f.service,
             &f.account_id,
+            &compliance,
             &f.timestamp,
         ])?;
     }

@@ -2,6 +2,7 @@ use anyhow::Context;
 use serde::Deserialize;
 use std::path::Path;
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ComplianceFramework {
@@ -11,6 +12,7 @@ pub struct ComplianceFramework {
     pub requirements: Vec<Requirement>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Requirement {
@@ -21,6 +23,7 @@ pub struct Requirement {
     pub attributes: Vec<serde_json::Value>,
 }
 
+#[allow(dead_code)]
 pub fn load_framework(path: &str) -> anyhow::Result<ComplianceFramework> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read compliance framework file: {path}"))?;
@@ -31,6 +34,7 @@ pub fn load_framework(path: &str) -> anyhow::Result<ComplianceFramework> {
     Ok(framework)
 }
 
+#[allow(dead_code)]
 pub fn load_all_frameworks(dir: &str) -> anyhow::Result<Vec<ComplianceFramework>> {
     let dir_path = Path::new(dir);
     anyhow::ensure!(

@@ -46,6 +46,7 @@ pub fn print_findings(findings: &[CheckReport]) {
     println!("\nSummary: {} total | {} passed | {} failed", findings.len(), pass_count, fail_count);
 }
 
+#[allow(dead_code)]
 pub fn create_scan_progress(total: u64) -> ProgressBar {
     let pb = ProgressBar::new(total);
     pb.set_style(

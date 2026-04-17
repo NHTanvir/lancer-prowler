@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub trait Provider: Send + Sync {
     fn name(&self) -> &str;
     fn provider_id(&self) -> &str;
