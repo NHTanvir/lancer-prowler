@@ -6,13 +6,15 @@ mod compliance;
 mod models;
 mod output;
 mod provider;
+mod providers;
 
 use anyhow::Context;
 use clap::Parser;
-use cli::{Cli, Commands, OutputFormatArg};
+use cli::{Cli, Commands, OutputFormatArg, ProviderArg};
 use output::{write_findings, OutputFormat};
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -24,18 +26,6 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Scan(args) => {
-            println!(
-                "lancer-prowler scan — provider: {} | regions: {} | services: {} | checks: {}",
-                args.provider,
-                if args.region.is_empty() { "all".to_string() } else { args.region.join(", ") },
-                if args.service.is_empty() { "all".to_string() } else { args.service.join(", ") },
-                if args.check.is_empty() { "all".to_string() } else { args.check.join(", ") },
-            );
-
-            println!("No checks implemented yet — cloud SDK integration comes in Week 2+.");
-
-            let findings: Vec<models::CheckReport> = vec![];
-
             let format = match args.output_format {
                 OutputFormatArg::Console => OutputFormat::Console,
                 OutputFormatArg::Csv => OutputFormat::Csv,
@@ -43,13 +33,78 @@ fn main() -> anyhow::Result<()> {
                 OutputFormatArg::Html => OutputFormat::Html,
             };
 
-            write_findings(&findings, format, args.output_path.as_deref())
-                .context("Failed to write findings")?;
+            match args.provider {
+                ProviderArg::Aws => {
+                    println!("lancer-prowler scan — provider: aws");
+
+                    let provider =
+                        providers::aws::AwsProvider::new(args.region.clone())
+                            .await
+                            .context("Failed to initialize AWS provider")?;
+
+                    println!(
+                        "  Account ID : {}",
+                        provider.account_id
+                    );
+                    println!(
+                        "  Identity   : {}",
+                        provider.identity_arn
+                    );
+                    println!(
+                        "  Regions    : {} region(s) — {}",
+                        provider.regions.len(),
+                        if provider.regions.len() <= 5 {
+                            provider.regions.join(", ")
+                        } else {
+                            format!(
+                                "{} … and {} more",
+                                provider.regions[..5].join(", "),
+                                provider.regions.len() - 5
+                            )
+                        }
+                    );
+
+                    let findings = run_scan(&provider).await;
+
+                    write_findings(&findings, format, args.output_path.as_deref())
+                        .context("Failed to write findings")?;
+                }
+
+                other => {
+                    println!(
+                        "lancer-prowler scan — provider: {other} | \
+                         regions: {} | services: {} | checks: {}",
+                        if args.region.is_empty() {
+                            "all".to_string()
+                        } else {
+                            args.region.join(", ")
+                        },
+                        if args.service.is_empty() {
+                            "all".to_string()
+                        } else {
+                            args.service.join(", ")
+                        },
+                        if args.check.is_empty() {
+                            "all".to_string()
+                        } else {
+                            args.check.join(", ")
+                        },
+                    );
+                    println!(
+                        "Provider '{other}' is not yet implemented — \
+                         only 'aws' is supported in Week 2."
+                    );
+
+                    let findings: Vec<models::CheckReport> = vec![];
+                    write_findings(&findings, format, args.output_path.as_deref())
+                        .context("Failed to write findings")?;
+                }
+            }
         }
 
         Commands::ListChecks(args) => {
             println!("Available checks:");
-            println!("  (none registered yet — check implementations arrive in Week 2+)");
+            println!("  (none registered yet — check implementations arrive in Week 3+)");
             if let Some(p) = &args.provider {
                 println!("  Provider filter: {p}");
             }
@@ -60,7 +115,7 @@ fn main() -> anyhow::Result<()> {
 
         Commands::ListServices(args) => {
             println!("Available services:");
-            println!("  (none registered yet — service implementations arrive in Week 2+)");
+            println!("  iam  — AWS Identity and Access Management (Week 2)");
             if let Some(p) = &args.provider {
                 println!("  Provider filter: {p}");
             }
@@ -76,4 +131,12 @@ fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+/// Placeholder scan runner — Week 3 will register checks and drive this loop.
+async fn run_scan(
+    _provider: &providers::aws::AwsProvider,
+) -> Vec<models::CheckReport> {
+    println!("  [scan] No checks registered yet — Week 3 will add IAM checks.");
+    vec![]
 }

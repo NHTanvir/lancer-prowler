@@ -20,6 +20,11 @@ comfy-table = "7.2"
 indicatif = "0.17"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["full"] }
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-iam = "1"
+aws-sdk-sts = "1"
+aws-types = "1"
 
 [profile.release]
 opt-level = 3
