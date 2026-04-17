@@ -1,0 +1,90 @@
+{
+  "Framework": "NIST SP 800-53 Rev 5",
+  "Version": "5",
+  "Provider": "aws",
+  "Requirements": [
+    {
+      "Id": "AC-2",
+      "Description": "Account Management",
+      "Checks": [
+        "iam_user_mfa_enabled_console_access",
+        "iam_user_two_active_access_key",
+        "iam_policy_attached_only_to_group_or_roles",
+        "iam_support_role_created"
+      ],
+      "Attributes": [{"Family": "AC"}]
+    },
+    {
+      "Id": "AC-3",
+      "Description": "Access Enforcement",
+      "Checks": [
+        "iam_customer_attached_policy_no_administrative_privileges",
+        "iam_aws_attached_policy_no_administrative_privileges",
+        "iam_inline_policy_no_administrative_privileges",
+        "iam_policy_allows_privilege_escalation"
+      ],
+      "Attributes": [{"Family": "AC"}]
+    },
+    {
+      "Id": "AC-6",
+      "Description": "Least Privilege",
+      "Checks": [
+        "iam_policy_no_full_access_to_cloudtrail",
+        "iam_policy_no_full_access_to_kms",
+        "iam_role_cross_account_readonlyaccess_policy"
+      ],
+      "Attributes": [{"Family": "AC"}]
+    },
+    {
+      "Id": "IA-2",
+      "Description": "Identification and Authentication (Organizational Users)",
+      "Checks": [
+        "iam_root_mfa_enabled",
+        "iam_root_hardware_mfa_enabled",
+        "iam_user_mfa_enabled_console_access"
+      ],
+      "Attributes": [{"Family": "IA"}]
+    },
+    {
+      "Id": "IA-5",
+      "Description": "Authenticator Management",
+      "Checks": [
+        "iam_rotate_access_key_90_days",
+        "iam_password_policy_minimum_length_14",
+        "iam_password_policy_uppercase",
+        "iam_password_policy_lowercase",
+        "iam_password_policy_symbol",
+        "iam_password_policy_number",
+        "iam_password_policy_reuse_24",
+        "iam_password_policy_expires_passwords_within_90_days_or_less"
+      ],
+      "Attributes": [{"Family": "IA"}]
+    },
+    {
+      "Id": "IA-12",
+      "Description": "Identity Proofing",
+      "Checks": [
+        "iam_check_saml_providers_sts",
+        "iam_no_root_access_key",
+        "iam_avoid_root_usage"
+      ],
+      "Attributes": [{"Family": "IA"}]
+    },
+    {
+      "Id": "AU-2",
+      "Description": "Event Logging",
+      "Checks": [
+        "iam_policy_no_full_access_to_cloudtrail"
+      ],
+      "Attributes": [{"Family": "AU"}]
+    },
+    {
+      "Id": "SC-12",
+      "Description": "Cryptographic Key Establishment and Management",
+      "Checks": [
+        "iam_policy_no_full_access_to_kms"
+      ],
+      "Attributes": [{"Family": "SC"}]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+pub mod checks;
 pub mod services;
 
 use anyhow::Context;
