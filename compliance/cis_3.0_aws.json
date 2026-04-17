@@ -1,0 +1,25 @@
+{
+  "Framework": "CIS AWS Foundations Benchmark",
+  "Version": "3.0",
+  "Provider": "aws",
+  "Requirements": [
+    {
+      "Id": "1.1",
+      "Description": "Maintain current contact details",
+      "Checks": ["iam_root_mfa_enabled"],
+      "Attributes": [{"Section": "1", "SubSection": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.4",
+      "Description": "Ensure no root user account access key exists",
+      "Checks": ["iam_no_root_access_key"],
+      "Attributes": [{"Section": "1", "SubSection": "4", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.5",
+      "Description": "Ensure MFA is enabled for the root user account",
+      "Checks": ["iam_root_mfa_enabled"],
+      "Attributes": [{"Section": "1", "SubSection": "5", "Profile": "Level 1"}]
+    }
+  ]
+}
