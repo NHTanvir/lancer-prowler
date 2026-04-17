@@ -41,6 +41,22 @@ use providers::aws::checks::iam::{
     iam_user_no_setup_initial_access_key::IamUserNoSetupInitialAccessKey,
     iam_user_two_active_access_key::IamUserTwoActiveAccessKey,
 };
+use providers::aws::checks::awsconfig::{
+    config_delivery_channel_exists::ConfigDeliveryChannelExists,
+    config_recorder_all_regions_enabled::ConfigRecorderAllRegionsEnabled,
+    config_recorder_using_all_supported_resource_types::ConfigRecorderUsingAllSupportedResourceTypes,
+};
+use providers::aws::checks::cloudtrail::{
+    cloudtrail_cloudwatch_logging_enabled::CloudtrailCloudwatchLoggingEnabled,
+    cloudtrail_kms_encryption_enabled::CloudtrailKmsEncryptionEnabled,
+    cloudtrail_log_file_validation_enabled::CloudtrailLogFileValidationEnabled,
+    cloudtrail_logs_s3_bucket_is_not_publicly_accessible::CloudtrailLogsS3BucketIsNotPubliclyAccessible,
+    cloudtrail_multi_region_enabled::CloudtrailMultiRegionEnabled,
+    cloudtrail_s3_dataevents_read_enabled::CloudtrailS3DataeventsReadEnabled,
+    cloudtrail_s3_dataevents_write_enabled::CloudtrailS3DataeventsWriteEnabled,
+    cloudtrail_threat_detection_enumeration::CloudtrailThreatDetectionEnumeration,
+    cloudtrail_threat_detection_privilege_escalation::CloudtrailThreatDetectionPrivilegeEscalation,
+};
 use providers::aws::checks::ec2::{
     ec2_ami_public::Ec2AmiPublic,
     ec2_ebs_default_encryption::Ec2EbsDefaultEncryption,
@@ -75,8 +91,16 @@ use providers::aws::checks::s3::{
     s3_bucket_secure_transport_policy::S3BucketSecureTransportPolicy,
     s3_bucket_server_access_logging_enabled::S3BucketServerAccessLoggingEnabled,
 };
+use providers::aws::checks::kms::{
+    kms_cmk_not_pending_deletion::KmsCmkNotPendingDeletion,
+    kms_cmk_rotation_enabled::KmsCmkRotationEnabled,
+    kms_key_not_disabled::KmsKeyNotDisabled,
+};
+use providers::aws::services::awsconfig::AwsConfigService;
+use providers::aws::services::cloudtrail::CloudtrailService;
 use providers::aws::services::ec2::Ec2Service;
 use providers::aws::services::iam::IamService;
+use providers::aws::services::kms::KmsService;
 use providers::aws::services::s3::S3Service;
 
 #[tokio::main]
@@ -211,6 +235,39 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+/// Build the complete list of CloudTrail check instances.
+fn all_cloudtrail_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(CloudtrailMultiRegionEnabled),
+        Box::new(CloudtrailLogsS3BucketIsNotPubliclyAccessible),
+        Box::new(CloudtrailLogFileValidationEnabled),
+        Box::new(CloudtrailKmsEncryptionEnabled),
+        Box::new(CloudtrailS3DataeventsReadEnabled),
+        Box::new(CloudtrailS3DataeventsWriteEnabled),
+        Box::new(CloudtrailCloudwatchLoggingEnabled),
+        Box::new(CloudtrailThreatDetectionPrivilegeEscalation),
+        Box::new(CloudtrailThreatDetectionEnumeration),
+    ]
+}
+
+/// Build the complete list of KMS check instances.
+fn all_kms_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(KmsCmkRotationEnabled),
+        Box::new(KmsCmkNotPendingDeletion),
+        Box::new(KmsKeyNotDisabled),
+    ]
+}
+
+/// Build the complete list of AWS Config check instances.
+fn all_awsconfig_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(ConfigRecorderAllRegionsEnabled),
+        Box::new(ConfigRecorderUsingAllSupportedResourceTypes),
+        Box::new(ConfigDeliveryChannelExists),
+    ]
 }
 
 /// Build the complete list of S3 check instances.
@@ -378,6 +435,102 @@ async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
     println!("  [scan] Running {} EC2 checks…", ec2_checks.len());
     for c in &ec2_checks {
         findings.extend(c.execute(&ec2_service));
+    }
+
+    // ── CloudTrail ────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching CloudTrail state…");
+    let cloudtrail_service = match CloudtrailService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching CloudTrail state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no CloudTrail/KMS/Config) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] CloudTrail state fetched — {} trail(s)",
+        cloudtrail_service.trails.len(),
+    );
+
+    let cloudtrail_checks = all_cloudtrail_checks();
+    println!("  [scan] Running {} CloudTrail checks…", cloudtrail_checks.len());
+    for c in &cloudtrail_checks {
+        findings.extend(c.execute(&cloudtrail_service));
+    }
+
+    // ── KMS ───────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching KMS state…");
+    let kms_service = match KmsService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching KMS state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no KMS/Config) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] KMS state fetched — {} key(s)",
+        kms_service.keys.len(),
+    );
+
+    let kms_checks = all_kms_checks();
+    println!("  [scan] Running {} KMS checks…", kms_checks.len());
+    for c in &kms_checks {
+        findings.extend(c.execute(&kms_service));
+    }
+
+    // ── AWS Config ────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching AWS Config state…");
+    let awsconfig_service = match AwsConfigService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching AWS Config state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no Config) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] AWS Config state fetched — {} recorder(s)",
+        awsconfig_service.recorders.len(),
+    );
+
+    let awsconfig_checks = all_awsconfig_checks();
+    println!("  [scan] Running {} AWS Config checks…", awsconfig_checks.len());
+    for c in &awsconfig_checks {
+        findings.extend(c.execute(&awsconfig_service));
     }
 
     let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
