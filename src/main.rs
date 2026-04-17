@@ -41,6 +41,26 @@ use providers::aws::checks::iam::{
     iam_user_no_setup_initial_access_key::IamUserNoSetupInitialAccessKey,
     iam_user_two_active_access_key::IamUserTwoActiveAccessKey,
 };
+use providers::aws::checks::ec2::{
+    ec2_ami_public::Ec2AmiPublic,
+    ec2_ebs_default_encryption::Ec2EbsDefaultEncryption,
+    ec2_ebs_public_snapshot::Ec2EbsPublicSnapshot,
+    ec2_ebs_snapshot_encrypted::Ec2EbsSnapshotEncrypted,
+    ec2_ebs_volume_encryption::Ec2EbsVolumeEncryption,
+    ec2_elastic_ip_unassigned::Ec2ElasticIpUnassigned,
+    ec2_instance_imdsv2_enabled::Ec2InstanceImdsv2Enabled,
+    ec2_instance_internet_facing_with_instance_profile::Ec2InstanceInternetFacingWithInstanceProfile,
+    ec2_instance_managed_by_ssm::Ec2InstanceManagedBySsm,
+    ec2_instance_paravirtual_type::Ec2InstanceParavirtualType,
+    ec2_instance_public_ip::Ec2InstancePublicIp,
+    ec2_instance_secrets_user_data::Ec2InstanceSecretsUserData,
+    ec2_securitygroup_allow_ingress_from_internet_to_any_port::Ec2SecuritygroupAllowIngressFromInternetToAnyPort,
+    ec2_securitygroup_allow_ingress_from_internet_to_port_22::Ec2SecuritygroupAllowIngressFromInternetToPort22,
+    ec2_securitygroup_allow_ingress_from_internet_to_port_3389::Ec2SecuritygroupAllowIngressFromInternetToPort3389,
+    ec2_securitygroup_allow_wide_open_public_ipv4::Ec2SecuritygroupAllowWideOpenPublicIpv4,
+    ec2_securitygroup_default_restrict_traffic::Ec2SecuritygroupDefaultRestrictTraffic,
+    ec2_securitygroup_not_used::Ec2SecuritygroupNotUsed,
+};
 use providers::aws::checks::s3::{
     s3_account_level_public_access_blocks::S3AccountLevelPublicAccessBlocks,
     s3_bucket_acl_prohibited::S3BucketAclProhibited,
@@ -55,6 +75,7 @@ use providers::aws::checks::s3::{
     s3_bucket_secure_transport_policy::S3BucketSecureTransportPolicy,
     s3_bucket_server_access_logging_enabled::S3BucketServerAccessLoggingEnabled,
 };
+use providers::aws::services::ec2::Ec2Service;
 use providers::aws::services::iam::IamService;
 use providers::aws::services::s3::S3Service;
 
@@ -241,7 +262,31 @@ fn all_iam_checks() -> Vec<Box<dyn check::Check>> {
     ]
 }
 
-/// Run all checks (IAM + S3) against a live AWS account.
+/// Build the complete list of EC2 check instances.
+fn all_ec2_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(Ec2SecuritygroupAllowIngressFromInternetToAnyPort),
+        Box::new(Ec2SecuritygroupAllowIngressFromInternetToPort22),
+        Box::new(Ec2SecuritygroupAllowIngressFromInternetToPort3389),
+        Box::new(Ec2SecuritygroupDefaultRestrictTraffic),
+        Box::new(Ec2SecuritygroupNotUsed),
+        Box::new(Ec2SecuritygroupAllowWideOpenPublicIpv4),
+        Box::new(Ec2EbsDefaultEncryption),
+        Box::new(Ec2EbsVolumeEncryption),
+        Box::new(Ec2EbsSnapshotEncrypted),
+        Box::new(Ec2EbsPublicSnapshot),
+        Box::new(Ec2InstanceImdsv2Enabled),
+        Box::new(Ec2InstancePublicIp),
+        Box::new(Ec2InstanceSecretsUserData),
+        Box::new(Ec2InstanceParavirtualType),
+        Box::new(Ec2InstanceManagedBySsm),
+        Box::new(Ec2InstanceInternetFacingWithInstanceProfile),
+        Box::new(Ec2AmiPublic),
+        Box::new(Ec2ElasticIpUnassigned),
+    ]
+}
+
+/// Run all checks (IAM + S3 + EC2) against a live AWS account.
 async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
     let mut findings: Vec<CheckReport> = Vec::new();
 
@@ -294,6 +339,45 @@ async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
     println!("  [scan] Running {} S3 checks…", s3_checks.len());
     for c in &s3_checks {
         findings.extend(c.execute(&s3_service));
+    }
+
+    // ── EC2 ──────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching EC2 state…");
+    let ec2_service = match Ec2Service::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching EC2 state: {:#}", e);
+            // Don't abort the whole scan — IAM + S3 findings are still valid
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (IAM + S3 only) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] EC2 state fetched — {} security groups, {} instances, {} volumes, \
+         {} snapshots, {} AMIs, {} elastic IPs",
+        ec2_service.security_groups.len(),
+        ec2_service.instances.len(),
+        ec2_service.ebs_volumes.len(),
+        ec2_service.ebs_snapshots.len(),
+        ec2_service.amis.len(),
+        ec2_service.elastic_ips.len(),
+    );
+
+    let ec2_checks = all_ec2_checks();
+    println!("  [scan] Running {} EC2 checks…", ec2_checks.len());
+    for c in &ec2_checks {
+        findings.extend(c.execute(&ec2_service));
     }
 
     let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();

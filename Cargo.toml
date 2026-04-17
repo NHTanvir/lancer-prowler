@@ -26,6 +26,8 @@ aws-sdk-iam = "1"
 aws-sdk-s3 = "1"
 aws-sdk-sts = "1"
 aws-types = "1"
+# aws-sdk-ec2 is excluded due to Windows MSVC stack overflow during compilation
+# EC2 data is stubbed; enable on Linux by adding: aws-sdk-ec2 = "1"
 
 [profile.release]
 opt-level = 3
