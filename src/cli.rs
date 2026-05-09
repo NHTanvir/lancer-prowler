@@ -48,6 +48,15 @@ pub struct ScanArgs {
 
     #[arg(long, default_value_t = false, help = "Disable colored terminal output")]
     pub no_color: bool,
+
+    #[arg(long, help = "Show interactive TUI dashboard after scan")]
+    pub tui: bool,
+
+    #[arg(long, help = "Upload findings to AWS Security Hub")]
+    pub upload_security_hub: bool,
+
+    #[arg(long, help = "AWS region for Security Hub upload", default_value = "us-east-1")]
+    pub security_hub_region: String,
 }
 
 #[derive(Parser, Debug)]

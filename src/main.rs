@@ -7,6 +7,8 @@ mod models;
 mod output;
 mod provider;
 mod providers;
+mod security_hub;
+mod tui;
 
 use anyhow::Context;
 use clap::Parser;
@@ -313,8 +315,27 @@ async fn main() -> anyhow::Result<()> {
 
                     let findings = run_scan(&provider).await;
 
-                    write_findings(&findings, format, args.output_path.as_deref())
-                        .context("Failed to write findings")?;
+                    if args.upload_security_hub {
+                        println!("  [upload] Uploading {} findings to AWS Security Hub ({})…",
+                            findings.len(), &args.security_hub_region);
+                        security_hub::upload_findings_to_security_hub(
+                            &provider.config,
+                            &findings,
+                            &provider.account_id,
+                            &args.security_hub_region,
+                        )
+                        .await
+                        .context("Failed to upload findings to Security Hub")?;
+                        println!("  [upload] Security Hub upload complete.");
+                    }
+
+                    if args.tui {
+                        tui::TuiApp::run(findings)
+                            .context("TUI dashboard error")?;
+                    } else {
+                        write_findings(&findings, format, args.output_path.as_deref())
+                            .context("Failed to write findings")?;
+                    }
                 }
 
                 ProviderArg::Azure => {

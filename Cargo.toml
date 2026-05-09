@@ -35,6 +35,8 @@ aws-sdk-guardduty = "1"
 aws-sdk-securityhub = "1"
 aws-sdk-secretsmanager = "1"
 aws-sdk-elasticloadbalancingv2 = "1"
+ratatui = { version = "0.29", features = ["crossterm"] }
+crossterm = "0.28"
 # aws-sdk-ec2 is excluded due to Windows MSVC stack overflow during compilation
 # EC2 data is stubbed; enable on Linux by adding: aws-sdk-ec2 = "1"
 # VPC is also part of EC2 SDK — stubbed for the same reason
