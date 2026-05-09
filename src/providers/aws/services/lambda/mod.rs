@@ -172,8 +172,10 @@ async fn fetch_function_details(
     // Environment variables
     let mut environment_variables: HashMap<String, String> = HashMap::new();
     if let Some(env) = cfg.environment() {
-        for (k, v) in env.variables() {
-            environment_variables.insert(k.to_string(), v.to_string());
+        if let Some(vars) = env.variables() {
+            for (k, v) in vars {
+                environment_variables.insert(k.to_string(), v.to_string());
+            }
         }
     }
 

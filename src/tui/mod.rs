@@ -118,8 +118,12 @@ impl TuiApp {
     }
 
     fn render_findings_table(&mut self, f: &mut Frame, area: Rect) {
-        let filtered = self.filtered_findings();
-        let rows: Vec<Row> = filtered.iter().map(|r| {
+        let tab = self.selected_tab;
+        let rows: Vec<Row> = self.findings.iter().filter(|r| match tab {
+            1 => matches!(r.status, Status::Fail),
+            2 => matches!(r.status, Status::Fail) && matches!(r.severity, Severity::Critical | Severity::High),
+            _ => true,
+        }).map(|r| {
             let status_color = match r.status {
                 Status::Fail => Color::Red,
                 Status::Pass => Color::Green,

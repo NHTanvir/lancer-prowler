@@ -59,8 +59,7 @@ pub async fn upload_findings_to_security_hub(
                     .id(&f.resource_arn)
                     .r#type(&f.service)
                     .region(&f.region)
-                    .build()
-                    .expect("resource required fields set");
+                    .build();
 
                 AwsSecurityFinding::builder()
                     .schema_version("2018-10-08")
@@ -90,7 +89,6 @@ pub async fn upload_findings_to_security_hub(
                     .workflow(Workflow::builder().status(workflow_status).build())
                     .record_state(RecordState::Active)
                     .build()
-                    .expect("required ASFF fields set")
             })
             .collect();
 
@@ -101,10 +99,10 @@ pub async fn upload_findings_to_security_hub(
             .await
         {
             Ok(resp) => {
-                if resp.failed_count() > 0 {
+                if resp.failed_count().unwrap_or(0) > 0 {
                     tracing::warn!(
                         "Security Hub: {} findings failed to import out of {}",
-                        resp.failed_count(),
+                        resp.failed_count().unwrap_or(0),
                         chunk.len()
                     );
                 }
