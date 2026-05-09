@@ -140,6 +140,47 @@ use providers::aws::checks::elbv2::{
     elbv2_insecure_listener_protocols::Elbv2InsecureListenerProtocols,
     elbv2_listener_uses_secure_ssl_policy::Elbv2ListenerUsesSecureSslPolicy,
 };
+// ── Azure imports ─────────────────────────────────────────────────────────────
+use providers::azure::checks::storage::{
+    storage_account_secure_transfer_required::StorageAccountSecureTransferRequired,
+    storage_account_minimum_tls_version_1_2::StorageAccountMinimumTlsVersion12,
+    storage_account_public_access_level_is_private::StorageAccountPublicAccessLevelIsPrivate,
+    storage_account_default_network_access_rule_deny::StorageAccountDefaultNetworkAccessRuleDeny,
+    storage_account_customer_managed_key::StorageAccountCustomerManagedKey,
+    storage_account_infrastructure_encryption_enabled::StorageAccountInfrastructureEncryptionEnabled,
+    storage_account_blob_soft_delete_enabled::StorageAccountBlobSoftDeleteEnabled,
+    storage_account_container_soft_delete_enabled::StorageAccountContainerSoftDeleteEnabled,
+    storage_account_versioning_enabled::StorageAccountVersioningEnabled,
+    storage_account_shared_key_access_disabled::StorageAccountSharedKeyAccessDisabled,
+};
+use providers::azure::checks::keyvault::{
+    keyvault_soft_delete_enabled::KeyVaultSoftDeleteEnabled,
+    keyvault_purge_protection_enabled::KeyVaultPurgeProtectionEnabled,
+    keyvault_public_network_access_disabled::KeyVaultPublicNetworkAccessDisabled,
+    keyvault_rbac_authorization_enabled::KeyVaultRbacAuthorizationEnabled,
+    keyvault_default_network_access_rule_deny::KeyVaultDefaultNetworkAccessRuleDeny,
+    keyvault_premium_sku::KeyVaultPremiumSku,
+    keyvault_recoverable::KeyVaultRecoverable,
+    keyvault_logging_enabled::KeyVaultLoggingEnabled,
+    keyvault_private_endpoint::KeyVaultPrivateEndpoint,
+    keyvault_key_expiration_set::KeyVaultKeyExpirationSet,
+};
+use providers::azure::checks::compute::{
+    compute_vm_os_disk_encryption_enabled::ComputeVmOsDiskEncryptionEnabled,
+    compute_vm_data_disks_encrypted::ComputeVmDataDisksEncrypted,
+    compute_vm_managed_identity_enabled::ComputeVmManagedIdentityEnabled,
+    compute_vm_boot_diagnostics_enabled::ComputeVmBootDiagnosticsEnabled,
+    compute_vm_os_automatic_patching::ComputeVmOsAutomaticPatching,
+    compute_vm_availability_zone_enabled::ComputeVmAvailabilityZoneEnabled,
+    compute_vm_disaster_recovery::ComputeVmDisasterRecovery,
+    compute_vm_endpoint_protection::ComputeVmEndpointProtection,
+    compute_vm_network_security_group::ComputeVmNetworkSecurityGroup,
+    compute_vm_public_ip_address::ComputeVmPublicIpAddress,
+};
+use providers::azure::services::storage::StorageService as AzureStorageService;
+use providers::azure::services::keyvault::KeyVaultService;
+use providers::azure::services::compute::ComputeService as AzureComputeService;
+
 use providers::aws::services::awsconfig::AwsConfigService;
 use providers::aws::services::cloudtrail::CloudtrailService;
 use providers::aws::services::ec2::Ec2Service;
@@ -211,6 +252,55 @@ async fn main() -> anyhow::Result<()> {
                         .context("Failed to write findings")?;
                 }
 
+                ProviderArg::Azure => {
+                    println!("lancer-prowler scan — provider: azure");
+
+                    let azure_provider = providers::azure::AzureProvider::new_stub(
+                        std::env::var("AZURE_SUBSCRIPTION_ID")
+                            .unwrap_or_else(|_| "unknown-subscription".to_string()),
+                    );
+                    let subscription_id = azure_provider.subscription_id.clone();
+
+                    println!("  Subscription : {}", subscription_id);
+
+                    let storage_svc =
+                        AzureStorageService::new_stub(subscription_id.clone());
+                    let keyvault_svc =
+                        KeyVaultService::new_stub(subscription_id.clone());
+                    let compute_svc =
+                        AzureComputeService::new_stub(subscription_id.clone());
+
+                    let mut findings: Vec<models::CheckReport> = vec![];
+
+                    let storage_checks = all_azure_storage_checks();
+                    println!("  [scan] Running {} Azure Storage checks…", storage_checks.len());
+                    for check in &storage_checks {
+                        findings.extend(check.execute(&storage_svc));
+                    }
+
+                    let keyvault_checks = all_azure_keyvault_checks();
+                    println!("  [scan] Running {} Azure KeyVault checks…", keyvault_checks.len());
+                    for check in &keyvault_checks {
+                        findings.extend(check.execute(&keyvault_svc));
+                    }
+
+                    let compute_checks = all_azure_compute_checks();
+                    println!("  [scan] Running {} Azure Compute checks…", compute_checks.len());
+                    for check in &compute_checks {
+                        findings.extend(check.execute(&compute_svc));
+                    }
+
+                    let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+                    let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+                    println!(
+                        "  [scan] Complete — {} findings ({} PASS, {} FAIL)",
+                        findings.len(), pass, fail
+                    );
+
+                    write_findings(&findings, format, args.output_path.as_deref())
+                        .context("Failed to write findings")?;
+                }
+
                 other => {
                     println!(
                         "lancer-prowler scan — provider: {other} | \
@@ -233,7 +323,7 @@ async fn main() -> anyhow::Result<()> {
                     );
                     println!(
                         "Provider '{other}' is not yet implemented — \
-                         only 'aws' is supported."
+                         only 'aws' and 'azure' are supported."
                     );
 
                     let findings: Vec<models::CheckReport> = vec![];
@@ -428,6 +518,54 @@ fn all_secretsmanager_checks() -> Vec<Box<dyn check::Check>> {
         Box::new(SecretsManagerSecretRotationEnabled),
         Box::new(SecretsManagerSecretEncryptedWithCmk),
         Box::new(SecretsManagerSecretUnused45Days),
+    ]
+}
+
+/// Build the complete list of Azure Storage check instances.
+fn all_azure_storage_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(StorageAccountSecureTransferRequired),
+        Box::new(StorageAccountMinimumTlsVersion12),
+        Box::new(StorageAccountPublicAccessLevelIsPrivate),
+        Box::new(StorageAccountDefaultNetworkAccessRuleDeny),
+        Box::new(StorageAccountCustomerManagedKey),
+        Box::new(StorageAccountInfrastructureEncryptionEnabled),
+        Box::new(StorageAccountBlobSoftDeleteEnabled),
+        Box::new(StorageAccountContainerSoftDeleteEnabled),
+        Box::new(StorageAccountVersioningEnabled),
+        Box::new(StorageAccountSharedKeyAccessDisabled),
+    ]
+}
+
+/// Build the complete list of Azure KeyVault check instances.
+fn all_azure_keyvault_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(KeyVaultSoftDeleteEnabled),
+        Box::new(KeyVaultPurgeProtectionEnabled),
+        Box::new(KeyVaultPublicNetworkAccessDisabled),
+        Box::new(KeyVaultRbacAuthorizationEnabled),
+        Box::new(KeyVaultDefaultNetworkAccessRuleDeny),
+        Box::new(KeyVaultPremiumSku),
+        Box::new(KeyVaultRecoverable),
+        Box::new(KeyVaultLoggingEnabled),
+        Box::new(KeyVaultPrivateEndpoint),
+        Box::new(KeyVaultKeyExpirationSet),
+    ]
+}
+
+/// Build the complete list of Azure Compute check instances.
+fn all_azure_compute_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(ComputeVmOsDiskEncryptionEnabled),
+        Box::new(ComputeVmDataDisksEncrypted),
+        Box::new(ComputeVmManagedIdentityEnabled),
+        Box::new(ComputeVmBootDiagnosticsEnabled),
+        Box::new(ComputeVmOsAutomaticPatching),
+        Box::new(ComputeVmAvailabilityZoneEnabled),
+        Box::new(ComputeVmDisasterRecovery),
+        Box::new(ComputeVmEndpointProtection),
+        Box::new(ComputeVmNetworkSecurityGroup),
+        Box::new(ComputeVmPublicIpAddress),
     ]
 }
 
