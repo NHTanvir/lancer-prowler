@@ -1,0 +1,61 @@
+{
+  "Framework": "CIS Kubernetes Benchmark",
+  "Version": "1.9.0",
+  "Provider": "kubernetes",
+  "Requirements": [
+    {
+      "Id": "5.1.1",
+      "Description": "Ensure that the cluster-admin role is only used where required.",
+      "Checks": ["rbac_cluster_admin_bindings", "rbac_no_cluster_admin_default"],
+      "Attributes": [{"Section": "5.1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.1.3",
+      "Description": "Minimize wildcard use in Roles and ClusterRoles.",
+      "Checks": ["rbac_wildcard_verbs"],
+      "Attributes": [{"Section": "5.1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.1.5",
+      "Description": "Ensure that default service accounts are not actively used.",
+      "Checks": ["rbac_service_account_least_privilege"],
+      "Attributes": [{"Section": "5.1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.2.1",
+      "Description": "Minimize the admission of privileged containers.",
+      "Checks": ["workloads_no_privileged_containers"],
+      "Attributes": [{"Section": "5.2", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.2.2",
+      "Description": "Minimize the admission of containers wishing to share the host process ID namespace.",
+      "Checks": ["workloads_no_host_pid_namespace"],
+      "Attributes": [{"Section": "5.2", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.2.4",
+      "Description": "Minimize the admission of containers wishing to share the host network namespace.",
+      "Checks": ["workloads_no_host_network"],
+      "Attributes": [{"Section": "5.2", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.2.5",
+      "Description": "Minimize the admission of containers with allowPrivilegeEscalation.",
+      "Checks": ["workloads_no_privilege_escalation"],
+      "Attributes": [{"Section": "5.2", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.2.6",
+      "Description": "Minimize the admission of root containers.",
+      "Checks": ["workloads_run_as_non_root"],
+      "Attributes": [{"Section": "5.2", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.3.2",
+      "Description": "Ensure that all Namespaces have NetworkPolicies defined.",
+      "Checks": ["network_namespace_has_network_policy", "network_default_deny_policy"],
+      "Attributes": [{"Section": "5.3", "Profile": "Level 1"}]
+    }
+  ]
+}

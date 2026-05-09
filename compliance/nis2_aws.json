@@ -1,0 +1,47 @@
+{
+  "Framework": "NIS2 Directive (EU)",
+  "Version": "2023",
+  "Provider": "aws",
+  "Requirements": [
+    {
+      "Id": "Art.21.1.a",
+      "Description": "Risk analysis and information system security policies.",
+      "Checks": [
+        "iam_avoid_root_usage",
+        "iam_root_mfa_enabled",
+        "iam_no_root_access_key"
+      ],
+      "Attributes": [{"Article": "21", "Paragraph": "1.a"}]
+    },
+    {
+      "Id": "Art.21.1.b",
+      "Description": "Incident handling.",
+      "Checks": [
+        "cloudtrail_multi_region_enabled",
+        "guardduty_is_enabled",
+        "securityhub_enabled"
+      ],
+      "Attributes": [{"Article": "21", "Paragraph": "1.b"}]
+    },
+    {
+      "Id": "Art.21.1.h",
+      "Description": "Policies and procedures regarding the use of cryptography.",
+      "Checks": [
+        "kms_cmk_rotation_enabled",
+        "s3_bucket_default_encryption",
+        "ec2_ebs_default_encryption",
+        "rds_instance_encrypted"
+      ],
+      "Attributes": [{"Article": "21", "Paragraph": "1.h"}]
+    },
+    {
+      "Id": "Art.21.2.e",
+      "Description": "Security in network and information systems acquisition, development and maintenance.",
+      "Checks": [
+        "vpc_flow_logs_enabled",
+        "config_recorder_all_regions_enabled"
+      ],
+      "Attributes": [{"Article": "21", "Paragraph": "2.e"}]
+    }
+  ]
+}

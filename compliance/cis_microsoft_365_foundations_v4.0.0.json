@@ -1,0 +1,49 @@
+{
+  "Framework": "CIS Microsoft 365 Foundations Benchmark",
+  "Version": "4.0.0",
+  "Provider": "m365",
+  "Requirements": [
+    {
+      "Id": "1.1.1",
+      "Description": "Ensure multi-factor authentication is required for all users with admin roles.",
+      "Checks": ["entra_mfa_required_for_admins"],
+      "Attributes": [{"Section": "1", "SubSection": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.1.2",
+      "Description": "Ensure DKIM is enabled for all Exchange Online domains.",
+      "Checks": ["exchange_dkim_enabled"],
+      "Attributes": [{"Section": "1", "SubSection": "2", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "2.1.1",
+      "Description": "Ensure Safe Links is enabled in Defender.",
+      "Checks": ["defender_safe_links_enabled"],
+      "Attributes": [{"Section": "2", "SubSection": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "3.1.1",
+      "Description": "Ensure SharePoint modern authentication is required.",
+      "Checks": ["sharepoint_modern_authentication_only"],
+      "Attributes": [{"Section": "3", "SubSection": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "4.1.1",
+      "Description": "Ensure external sharing in OneDrive is restricted.",
+      "Checks": ["onedrive_external_sharing_restricted"],
+      "Attributes": [{"Section": "4", "SubSection": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.1.1",
+      "Description": "Ensure Teams external access is restricted.",
+      "Checks": ["teams_external_access_restricted"],
+      "Attributes": [{"Section": "5", "SubSection": "1", "Profile": "Level 2"}]
+    },
+    {
+      "Id": "6.1.1",
+      "Description": "Ensure Purview DLP policies are enabled.",
+      "Checks": ["purview_dlp_policies_enabled"],
+      "Attributes": [{"Section": "6", "SubSection": "1", "Profile": "Level 2"}]
+    }
+  ]
+}

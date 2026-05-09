@@ -1,0 +1,49 @@
+{
+  "Framework": "General Data Protection Regulation (EU)",
+  "Version": "2016/679",
+  "Provider": "aws",
+  "Requirements": [
+    {
+      "Id": "Art.32.1.a",
+      "Description": "Encryption of personal data.",
+      "Checks": [
+        "s3_bucket_default_encryption",
+        "s3_bucket_kms_encryption",
+        "rds_instance_encrypted",
+        "rds_instance_storage_encrypted",
+        "ec2_ebs_default_encryption",
+        "ec2_ebs_volume_encryption"
+      ],
+      "Attributes": [{"Article": "32", "Paragraph": "1.a"}]
+    },
+    {
+      "Id": "Art.32.1.b",
+      "Description": "Ensure the ongoing confidentiality, integrity, availability and resilience.",
+      "Checks": [
+        "cloudtrail_multi_region_enabled",
+        "rds_instance_multi_az",
+        "rds_instance_backup_enabled"
+      ],
+      "Attributes": [{"Article": "32", "Paragraph": "1.b"}]
+    },
+    {
+      "Id": "Art.30",
+      "Description": "Records of processing activities.",
+      "Checks": [
+        "cloudtrail_cloudwatch_logging_enabled",
+        "cloudtrail_log_file_validation_enabled"
+      ],
+      "Attributes": [{"Article": "30"}]
+    },
+    {
+      "Id": "Art.25",
+      "Description": "Data protection by design and by default.",
+      "Checks": [
+        "iam_policy_no_full_access_to_cloudtrail",
+        "iam_policy_no_full_access_to_kms",
+        "iam_inline_policy_no_administrative_privileges"
+      ],
+      "Attributes": [{"Article": "25"}]
+    }
+  ]
+}

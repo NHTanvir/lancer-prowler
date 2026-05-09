@@ -1,0 +1,43 @@
+{
+  "Framework": "NIST 800-53 Revision 5",
+  "Version": "5.0",
+  "Provider": "azure",
+  "Requirements": [
+    {
+      "Id": "AC-2",
+      "Description": "Account Management.",
+      "Checks": [
+        "storage_account_shared_key_access_disabled",
+        "keyvault_rbac_authorization_enabled"
+      ],
+      "Attributes": [{"Family": "Access Control"}]
+    },
+    {
+      "Id": "SC-12",
+      "Description": "Cryptographic Key Establishment and Management.",
+      "Checks": [
+        "keyvault_soft_delete_enabled",
+        "keyvault_purge_protection_enabled",
+        "keyvault_key_expiration_set"
+      ],
+      "Attributes": [{"Family": "System and Communications Protection"}]
+    },
+    {
+      "Id": "SC-13",
+      "Description": "Cryptographic Protection.",
+      "Checks": [
+        "storage_account_secure_transfer_required",
+        "storage_account_minimum_tls_version_1_2",
+        "storage_account_customer_managed_key",
+        "storage_account_infrastructure_encryption_enabled"
+      ],
+      "Attributes": [{"Family": "System and Communications Protection"}]
+    },
+    {
+      "Id": "AU-2",
+      "Description": "Event Logging.",
+      "Checks": ["keyvault_logging_enabled"],
+      "Attributes": [{"Family": "Audit and Accountability"}]
+    }
+  ]
+}

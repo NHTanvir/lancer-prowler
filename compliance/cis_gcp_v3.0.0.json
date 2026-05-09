@@ -1,0 +1,55 @@
+{
+  "Framework": "CIS GCP Foundations Benchmark",
+  "Version": "3.0.0",
+  "Provider": "gcp",
+  "Requirements": [
+    {
+      "Id": "1.5",
+      "Description": "Ensure that Service Account has no Admin privileges.",
+      "Checks": ["iam_sa_no_admin_privileges", "iam_no_service_account_with_admin_privileges"],
+      "Attributes": [{"Section": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.6",
+      "Description": "Ensure that IAM users do not use Service Account user-managed keys.",
+      "Checks": ["iam_service_account_key_not_user_managed"],
+      "Attributes": [{"Section": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.7",
+      "Description": "Ensure user-managed/external keys for service accounts are rotated every 90 days or less.",
+      "Checks": ["iam_service_account_key_rotation_90_days"],
+      "Attributes": [{"Section": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.4",
+      "Description": "Ensure that there are only GCP-managed service account keys for each service account.",
+      "Checks": ["iam_avoid_primitive_roles"],
+      "Attributes": [{"Section": "1", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "5.1",
+      "Description": "Ensure that Cloud Storage buckets have uniform bucket-level access enabled.",
+      "Checks": ["storage_bucket_uniform_bucket_level_access"],
+      "Attributes": [{"Section": "5", "Profile": "Level 2"}]
+    },
+    {
+      "Id": "5.2",
+      "Description": "Ensure that Cloud Storage buckets are not anonymously or publicly accessible.",
+      "Checks": ["storage_bucket_not_publicly_accessible", "storage_bucket_public_access_prevention"],
+      "Attributes": [{"Section": "5", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "4.6",
+      "Description": "Ensure that IP forwarding is not enabled on Instances.",
+      "Checks": ["compute_instance_ip_forwarding_disabled"],
+      "Attributes": [{"Section": "4", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "4.9",
+      "Description": "Ensure that Compute instances do not have public IPs.",
+      "Checks": ["compute_instance_no_public_ip"],
+      "Attributes": [{"Section": "4", "Profile": "Level 2"}]
+    }
+  ]
+}

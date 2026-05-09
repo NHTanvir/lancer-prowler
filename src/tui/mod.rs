@@ -160,7 +160,7 @@ impl TuiApp {
         ])
         .header(header)
         .block(Block::default().borders(Borders::ALL).title(" Findings "))
-        .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
+        .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED));
 
         f.render_stateful_widget(table, area, &mut self.table_state);
     }

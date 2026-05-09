@@ -1,0 +1,30 @@
+# Default AWS mutelist for lancer-prowler.
+#
+# Schema (mirrors upstream prowler):
+#   Mutelist:
+#     Accounts:
+#       <account-id>:
+#         Checks:
+#           <check_id>:
+#             Regions: [...]
+#             Resources: [...]
+#             Tags: [...]
+#             Description: ...
+#
+# `*` matches any value. Resource patterns support a single `*` wildcard for
+# globbing against the ARN. Findings that match are flipped to `MUTED` status
+# (counted separately, never silently dropped).
+
+Mutelist:
+  Accounts:
+    "*":
+      Checks:
+        # ExamplCi: mute object-lock failures in lab regions that don't support
+        # object lock yet.
+        s3_bucket_object_lock:
+          Regions:
+            - us-east-2
+            - eu-central-1
+          Resources:
+            - "arn:aws:s3:::lab-*"
+          Description: "Lab buckets in non-prod regions"

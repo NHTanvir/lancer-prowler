@@ -1,0 +1,41 @@
+{
+  "Framework": "ISO/IEC 27001:2022",
+  "Version": "2022",
+  "Provider": "gcp",
+  "Requirements": [
+    {
+      "Id": "A.5.15",
+      "Description": "Access control.",
+      "Checks": [
+        "iam_avoid_primitive_roles",
+        "iam_sa_no_admin_privileges",
+        "iam_no_public_access"
+      ],
+      "Attributes": [{"Annex": "A", "Control": "5.15"}]
+    },
+    {
+      "Id": "A.5.34",
+      "Description": "Privacy and protection of personal identifiable information (PII).",
+      "Checks": [
+        "storage_bucket_not_publicly_accessible",
+        "storage_bucket_uniform_bucket_level_access"
+      ],
+      "Attributes": [{"Annex": "A", "Control": "5.34"}]
+    },
+    {
+      "Id": "A.8.24",
+      "Description": "Use of cryptography.",
+      "Checks": ["storage_bucket_kms_encryption"],
+      "Attributes": [{"Annex": "A", "Control": "8.24"}]
+    },
+    {
+      "Id": "A.8.16",
+      "Description": "Monitoring activities.",
+      "Checks": [
+        "storage_bucket_logging_enabled",
+        "compute_instance_serial_port_disabled"
+      ],
+      "Attributes": [{"Annex": "A", "Control": "8.16"}]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "Framework": "ASD Essential Eight Maturity Model",
+  "Version": "Nov 2023",
+  "Provider": "aws",
+  "Requirements": [
+    {
+      "Id": "E8.5",
+      "Description": "Restrict administrative privileges.",
+      "Checks": [
+        "iam_inline_policy_no_administrative_privileges",
+        "iam_customer_attached_policy_no_administrative_privileges",
+        "iam_aws_attached_policy_no_administrative_privileges",
+        "iam_policy_allows_privilege_escalation"
+      ],
+      "Attributes": [{"Strategy": "Restrict administrative privileges"}]
+    },
+    {
+      "Id": "E8.6",
+      "Description": "Multi-factor authentication.",
+      "Checks": [
+        "iam_root_mfa_enabled",
+        "iam_root_hardware_mfa_enabled",
+        "iam_user_mfa_enabled_console_access"
+      ],
+      "Attributes": [{"Strategy": "Multi-factor authentication"}]
+    },
+    {
+      "Id": "E8.7",
+      "Description": "Regular backups.",
+      "Checks": [
+        "rds_instance_backup_enabled",
+        "s3_bucket_object_versioning"
+      ],
+      "Attributes": [{"Strategy": "Regular backups"}]
+    },
+    {
+      "Id": "E8.8",
+      "Description": "Maintain audit logs.",
+      "Checks": [
+        "cloudtrail_multi_region_enabled",
+        "cloudtrail_log_file_validation_enabled",
+        "config_recorder_all_regions_enabled"
+      ],
+      "Attributes": [{"Strategy": "Logging"}]
+    }
+  ]
+}

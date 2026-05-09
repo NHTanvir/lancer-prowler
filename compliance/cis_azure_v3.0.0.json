@@ -1,0 +1,55 @@
+{
+  "Framework": "CIS Microsoft Azure Foundations Benchmark",
+  "Version": "3.0.0",
+  "Provider": "azure",
+  "Requirements": [
+    {
+      "Id": "3.1",
+      "Description": "Ensure that 'Secure transfer required' is set to 'Enabled' on every storage account.",
+      "Checks": ["storage_account_secure_transfer_required"],
+      "Attributes": [{"Section": "3", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "3.2",
+      "Description": "Ensure default network access rule for Storage accounts is Deny.",
+      "Checks": ["storage_account_default_network_access_rule_deny"],
+      "Attributes": [{"Section": "3", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "3.3",
+      "Description": "Ensure Storage account public access is private.",
+      "Checks": ["storage_account_public_access_level_is_private"],
+      "Attributes": [{"Section": "3", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "3.4",
+      "Description": "Ensure Storage account TLS version is at least 1.2.",
+      "Checks": ["storage_account_minimum_tls_version_1_2"],
+      "Attributes": [{"Section": "3", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "8.1",
+      "Description": "Ensure Key Vault soft-delete is enabled.",
+      "Checks": ["keyvault_soft_delete_enabled"],
+      "Attributes": [{"Section": "8", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "8.2",
+      "Description": "Ensure Key Vault purge protection is enabled.",
+      "Checks": ["keyvault_purge_protection_enabled"],
+      "Attributes": [{"Section": "8", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "7.1",
+      "Description": "Ensure VM OS disk encryption is enabled.",
+      "Checks": ["compute_vm_os_disk_encryption_enabled"],
+      "Attributes": [{"Section": "7", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "7.2",
+      "Description": "Ensure VM data disks are encrypted.",
+      "Checks": ["compute_vm_data_disks_encrypted"],
+      "Attributes": [{"Section": "7", "Profile": "Level 1"}]
+    }
+  ]
+}

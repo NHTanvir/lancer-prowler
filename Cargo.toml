@@ -26,17 +26,25 @@ aws-sdk-iam = "1"
 aws-sdk-s3 = "1"
 aws-sdk-sts = "1"
 aws-types = "1"
-aws-sdk-cloudtrail = "1"
-aws-sdk-kms = "1"
-aws-sdk-config = "1"
-aws-sdk-rds = "1"
-aws-sdk-lambda = "1"
-aws-sdk-guardduty = "1"
-aws-sdk-securityhub = "1"
-aws-sdk-secretsmanager = "1"
-aws-sdk-elasticloadbalancingv2 = "1"
+# Pinned to older minor releases — newer minors crashed rustc on Windows MSVC
+# with STATUS_STACK_BUFFER_OVERRUN. See README/Cargo.toml notes near
+# aws-sdk-ec2 — same family of issue.
+aws-sdk-cloudtrail = "=1.90.0"
+aws-sdk-kms = "=1.85.0"
+aws-sdk-config = "=1.85.0"
+aws-sdk-rds = "=1.110.0"
+aws-sdk-lambda = "=1.100.0"
+aws-sdk-guardduty = "=1.85.0"
+aws-sdk-securityhub = "=1.85.0"
+aws-sdk-secretsmanager = "=1.85.0"
+aws-sdk-elasticloadbalancingv2 = "=1.85.0"
 ratatui = { version = "0.29", features = ["crossterm"] }
 crossterm = "0.28"
+# Optional native GUI — eframe pulls in winit/glow/wgpu and a large dep tree.
+# Build with `cargo build --features gui` to enable the GUI binary mode. Default
+# builds ship the TUI fallback (see src/gui/mod.rs).
+eframe = { version = "0.29", optional = true }
+egui = { version = "0.29", optional = true }
 # aws-sdk-ec2 is excluded due to Windows MSVC stack overflow during compilation
 # EC2 data is stubbed; enable on Linux by adding: aws-sdk-ec2 = "1"
 # VPC is also part of EC2 SDK — stubbed for the same reason
@@ -46,6 +54,10 @@ crossterm = "0.28"
 # GCP provider is stubbed; real implementation would use GCP REST APIs via reqwest
 # kube and k8s-openapi excluded — version 3.x not available; use latest stable when enabling
 # Kubernetes provider is stubbed; enable with: kube = "0.95" k8s-openapi = { version = "0.23", features = ["latest"] }
+
+[features]
+default = []
+gui = ["dep:eframe", "dep:egui"]
 
 [profile.release]
 opt-level = 3

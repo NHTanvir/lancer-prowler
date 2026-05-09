@@ -1,0 +1,39 @@
+{
+  "Framework": "PCI DSS",
+  "Version": "4.0",
+  "Provider": "azure",
+  "Requirements": [
+    {
+      "Id": "3.4.1",
+      "Description": "Render PAN unreadable wherever it is stored.",
+      "Checks": [
+        "storage_account_customer_managed_key",
+        "storage_account_infrastructure_encryption_enabled",
+        "compute_vm_os_disk_encryption_enabled",
+        "compute_vm_data_disks_encrypted"
+      ],
+      "Attributes": [{"Section": "3", "SubSection": "4.1"}]
+    },
+    {
+      "Id": "4.2.1",
+      "Description": "Strong cryptography and security protocols for transmission of cardholder data.",
+      "Checks": [
+        "storage_account_secure_transfer_required",
+        "storage_account_minimum_tls_version_1_2"
+      ],
+      "Attributes": [{"Section": "4", "SubSection": "2.1"}]
+    },
+    {
+      "Id": "8.3",
+      "Description": "Multi-factor authentication.",
+      "Checks": ["keyvault_rbac_authorization_enabled"],
+      "Attributes": [{"Section": "8", "SubSection": "3"}]
+    },
+    {
+      "Id": "10.2",
+      "Description": "Audit logs to record all individual user accesses to cardholder data.",
+      "Checks": ["keyvault_logging_enabled"],
+      "Attributes": [{"Section": "10", "SubSection": "2"}]
+    }
+  ]
+}

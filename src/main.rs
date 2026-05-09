@@ -3,18 +3,24 @@
 mod check;
 mod cli;
 mod compliance;
+mod gui;
+mod ingest;
+mod lancer_server;
 mod models;
+mod mutelist;
 mod output;
 mod provider;
 mod providers;
 mod security_hub;
+mod self_test;
+mod slack;
 mod tui;
 
 use anyhow::Context;
 use clap::Parser;
-use cli::{Cli, Commands, OutputFormatArg, ProviderArg};
-use models::CheckReport;
-use output::{write_findings, OutputFormat};
+use cli::{Cli, Commands, OutputFormatArg, ProviderArg, StatusArg};
+use models::{CheckReport, Severity, Status};
+use output::{write_findings, write_findings_multi, OutputFormat};
 use provider::Provider;
 
 use providers::aws::checks::iam::{
@@ -265,286 +271,63 @@ use providers::aws::services::vpc::VpcService;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn")),
-        )
-        .init();
-
     let cli = Cli::parse();
+    init_logging(&cli)?;
 
-    match cli.command {
-        Commands::Scan(args) => {
-            let format = match args.output_format {
-                OutputFormatArg::Console => OutputFormat::Console,
-                OutputFormatArg::Csv => OutputFormat::Csv,
-                OutputFormatArg::JsonOcsf => OutputFormat::JsonOcsf,
-                OutputFormatArg::Html => OutputFormat::Html,
-            };
+    if cli.self_test {
+        let code = self_test::run_self_test();
+        std::process::exit(code);
+    }
 
-            match args.provider {
-                ProviderArg::Aws => {
-                    println!("lancer-prowler scan — provider: aws");
+    if !cli.no_banner && !cli.quiet {
+        print_banner();
+    }
 
-                    let provider =
-                        providers::aws::AwsProvider::new(args.region.clone())
-                            .await
-                            .context("Failed to initialize AWS provider")?;
+    // No subcommand → GUI mode (unless --cli was set, in which case fall through
+    // to the CLI surface with a default help-style print).
+    let Cli {
+        cli: cli_flag,
+        no_banner: _,
+        ignore_exit_code_3,
+        quiet,
+        verbose: _,
+        log_level: _,
+        log_file: _,
+        config_file: _,
+        self_test: _,
+        command,
+    } = cli;
 
-                    println!(
-                        "  Account ID : {}",
-                        provider.account_id
-                    );
-                    println!(
-                        "  Identity   : {}",
-                        provider.identity_arn
-                    );
-                    println!(
-                        "  Regions    : {} region(s) — {}",
-                        provider.regions.len(),
-                        if provider.regions.len() <= 5 {
-                            provider.regions.join(", ")
-                        } else {
-                            format!(
-                                "{} … and {} more",
-                                provider.regions[..5].join(", "),
-                                provider.regions.len() - 5
-                            )
-                        }
-                    );
-
-                    let findings = run_scan(&provider).await;
-
-                    if args.upload_security_hub {
-                        println!("  [upload] Uploading {} findings to AWS Security Hub ({})…",
-                            findings.len(), &args.security_hub_region);
-                        security_hub::upload_findings_to_security_hub(
-                            &provider.config,
-                            &findings,
-                            &provider.account_id,
-                            &args.security_hub_region,
-                        )
-                        .await
-                        .context("Failed to upload findings to Security Hub")?;
-                        println!("  [upload] Security Hub upload complete.");
-                    }
-
-                    if args.tui {
-                        tui::TuiApp::run(findings)
-                            .context("TUI dashboard error")?;
-                    } else {
-                        write_findings(&findings, format, args.output_path.as_deref())
-                            .context("Failed to write findings")?;
-                    }
-                }
-
-                ProviderArg::Azure => {
-                    println!("lancer-prowler scan — provider: azure");
-
-                    let azure_provider = providers::azure::AzureProvider::new_stub(
-                        std::env::var("AZURE_SUBSCRIPTION_ID")
-                            .unwrap_or_else(|_| "unknown-subscription".to_string()),
-                    );
-                    let subscription_id = azure_provider.subscription_id.clone();
-
-                    println!("  Subscription : {}", subscription_id);
-
-                    let storage_svc =
-                        AzureStorageService::new_stub(subscription_id.clone());
-                    let keyvault_svc =
-                        KeyVaultService::new_stub(subscription_id.clone());
-                    let compute_svc =
-                        AzureComputeService::new_stub(subscription_id.clone());
-
-                    let mut findings: Vec<models::CheckReport> = vec![];
-
-                    let storage_checks = all_azure_storage_checks();
-                    println!("  [scan] Running {} Azure Storage checks…", storage_checks.len());
-                    for check in &storage_checks {
-                        findings.extend(check.execute(&storage_svc));
-                    }
-
-                    let keyvault_checks = all_azure_keyvault_checks();
-                    println!("  [scan] Running {} Azure KeyVault checks…", keyvault_checks.len());
-                    for check in &keyvault_checks {
-                        findings.extend(check.execute(&keyvault_svc));
-                    }
-
-                    let compute_checks = all_azure_compute_checks();
-                    println!("  [scan] Running {} Azure Compute checks…", compute_checks.len());
-                    for check in &compute_checks {
-                        findings.extend(check.execute(&compute_svc));
-                    }
-
-                    let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
-                    let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
-                    println!(
-                        "  [scan] Complete — {} findings ({} PASS, {} FAIL)",
-                        findings.len(), pass, fail
-                    );
-
-                    write_findings(&findings, format, args.output_path.as_deref())
-                        .context("Failed to write findings")?;
-                }
-
-                ProviderArg::Gcp => {
-                    println!("lancer-prowler scan — provider: gcp");
-
-                    let project_id = std::env::var("GOOGLE_CLOUD_PROJECT")
-                        .or_else(|_| std::env::var("GCP_PROJECT_ID"))
-                        .unwrap_or_else(|_| "unknown-project".to_string());
-                    let gcp_provider =
-                        providers::gcp::GcpProvider::new_stub(project_id.clone());
-
-                    println!("  Project : {}", gcp_provider.project_id);
-
-                    let iam_svc = GcpIamService::new_stub(project_id.clone());
-                    let storage_svc = GcpStorageService::new_stub(project_id.clone());
-                    let compute_svc = GcpComputeService::new_stub(project_id.clone());
-
-                    let mut findings: Vec<models::CheckReport> = vec![];
-
-                    let gcp_iam_checks = all_gcp_iam_checks();
-                    println!("  [scan] Running {} GCP IAM checks…", gcp_iam_checks.len());
-                    for check in &gcp_iam_checks {
-                        findings.extend(check.execute(&iam_svc));
-                    }
-
-                    let gcp_storage_checks = all_gcp_storage_checks();
-                    println!("  [scan] Running {} GCP Storage checks…", gcp_storage_checks.len());
-                    for check in &gcp_storage_checks {
-                        findings.extend(check.execute(&storage_svc));
-                    }
-
-                    let gcp_compute_checks = all_gcp_compute_checks();
-                    println!("  [scan] Running {} GCP Compute checks…", gcp_compute_checks.len());
-                    for check in &gcp_compute_checks {
-                        findings.extend(check.execute(&compute_svc));
-                    }
-
-                    let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
-                    let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
-                    println!(
-                        "  [scan] Complete — {} findings ({} PASS, {} FAIL)",
-                        findings.len(), pass, fail
-                    );
-
-                    write_findings(&findings, format, args.output_path.as_deref())
-                        .context("Failed to write findings")?;
-                }
-
-                ProviderArg::Kubernetes => {
-                    println!("lancer-prowler scan — provider: kubernetes");
-
-                    let cluster_name = std::env::var("KUBE_CLUSTER_NAME")
-                        .unwrap_or_else(|_| "default-cluster".to_string());
-
-                    let _k8s_provider =
-                        providers::kubernetes::KubernetesProvider::new_stub(cluster_name.clone());
-
-                    println!("  Cluster : {}", cluster_name);
-
-                    let rbac_svc = RbacService::new_stub(cluster_name.clone());
-                    let workloads_svc = WorkloadsService::new_stub(cluster_name.clone());
-                    let network_svc = NetworkService::new_stub(cluster_name.clone());
-
-                    let mut findings: Vec<models::CheckReport> = vec![];
-
-                    let k8s_rbac_checks = all_k8s_rbac_checks();
-                    println!("  [scan] Running {} Kubernetes RBAC checks…", k8s_rbac_checks.len());
-                    for check in &k8s_rbac_checks {
-                        findings.extend(check.execute(&rbac_svc));
-                    }
-
-                    let k8s_workload_checks = all_k8s_workload_checks();
-                    println!("  [scan] Running {} Kubernetes Workload checks…", k8s_workload_checks.len());
-                    for check in &k8s_workload_checks {
-                        findings.extend(check.execute(&workloads_svc));
-                    }
-
-                    let k8s_network_checks = all_k8s_network_checks();
-                    println!("  [scan] Running {} Kubernetes Network checks…", k8s_network_checks.len());
-                    for check in &k8s_network_checks {
-                        findings.extend(check.execute(&network_svc));
-                    }
-
-                    let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
-                    let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
-                    println!(
-                        "  [scan] Complete — {} findings ({} PASS, {} FAIL)",
-                        findings.len(), pass, fail
-                    );
-
-                    write_findings(&findings, format, args.output_path.as_deref())
-                        .context("Failed to write findings")?;
-                }
-
-                other => {
-                    println!(
-                        "lancer-prowler scan — provider: {other} | \
-                         regions: {} | services: {} | checks: {}",
-                        if args.region.is_empty() {
-                            "all".to_string()
-                        } else {
-                            args.region.join(", ")
-                        },
-                        if args.service.is_empty() {
-                            "all".to_string()
-                        } else {
-                            args.service.join(", ")
-                        },
-                        if args.check.is_empty() {
-                            "all".to_string()
-                        } else {
-                            args.check.join(", ")
-                        },
-                    );
-                    println!(
-                        "Provider '{other}' is not yet implemented — \
-                         only 'aws' and 'azure' are supported."
-                    );
-
-                    let findings: Vec<models::CheckReport> = vec![];
-                    write_findings(&findings, format, args.output_path.as_deref())
-                        .context("Failed to write findings")?;
-                }
-            }
-        }
-
-        Commands::ListChecks(args) => {
-            let checks = all_iam_checks();
-            println!("Available checks ({} total):", checks.len());
-            for c in &checks {
-                let meta = c.metadata();
-                let provider_filter = args
-                    .provider
-                    .as_ref()
-                    .map(|p| p.to_string())
-                    .unwrap_or_default();
-                let service_filter = args.service.as_deref().unwrap_or("").to_string();
-                if (!provider_filter.is_empty() && meta.provider != provider_filter)
-                    || (!service_filter.is_empty() && meta.service != service_filter)
-                {
-                    continue;
-                }
+    let command = match command {
+        Some(c) => c,
+        None => {
+            if cli_flag {
                 println!(
-                    "  [{:8}] {} — {}",
-                    meta.severity,
-                    meta.id,
-                    meta.name
+                    "lancer-prowler {} — use --help to see commands.",
+                    env!("CARGO_PKG_VERSION")
                 );
+                return Ok(());
             }
+            let server = lancer_server::Server::launch().ok();
+            return gui::launch(Vec::new(), server);
         }
+    };
 
-        Commands::ListServices(args) => {
-            println!("Available services:");
-            println!("  iam  — AWS Identity and Access Management");
-            if let Some(p) = &args.provider {
-                println!("  Provider filter: {p}");
-            }
-        }
+    let scan_context = ScanContext {
+        quiet,
+        ignore_exit_code_3,
+    };
 
+    match command {
+        Commands::Scan(args) => run_scan_command(&scan_context, args).await?,
+        Commands::ListChecks(args) => list_checks(args, false),
+        Commands::ListChecksJson(args) => list_checks(args, true),
+        Commands::ListServices(args) => list_services(args),
+        Commands::ListCompliance(args) => list_compliance(args),
+        Commands::ListComplianceRequirements(args) => list_compliance_requirements(args)?,
+        Commands::ListCategories => list_categories(),
+        Commands::ListFixer => list_fixer(),
+        Commands::Ingest(args) => run_ingest(&scan_context, args)?,
         Commands::Version => {
             println!(
                 "lancer-prowler v{} ({})",
@@ -555,6 +338,657 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+struct ScanContext {
+    quiet: bool,
+    ignore_exit_code_3: bool,
+}
+
+fn init_logging(cli: &Cli) -> anyhow::Result<()> {
+    let level = if cli.verbose {
+        "debug"
+    } else if cli.quiet {
+        "error"
+    } else {
+        cli.log_level.as_str()
+    };
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(level));
+
+    if let Some(path) = cli.log_file.as_ref() {
+        if let Ok(file) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+            tracing_subscriber::fmt()
+                .with_env_filter(filter)
+                .with_writer(file)
+                .with_ansi(false)
+                .init();
+            return Ok(());
+        }
+    }
+
+    tracing_subscriber::fmt().with_env_filter(filter).init();
+    Ok(())
+}
+
+fn print_banner() {
+    println!("┌────────────────────────────────────────────────────────────────┐");
+    println!("│  lancer-prowler v{:<46}│", env!("CARGO_PKG_VERSION"));
+    println!("│  Cloud Security Posture Management — Lancer ecosystem clone.   │");
+    println!("└────────────────────────────────────────────────────────────────┘");
+}
+
+fn resolve_output_formats(args: &cli::ScanArgs) -> Vec<OutputFormat> {
+    if args.output_formats.is_empty() {
+        // No --output-formats: keep the legacy single-format behaviour
+        // (console-only by default) so existing invocations don't surprise.
+        vec![OutputFormat::Console]
+    } else {
+        args.output_formats
+            .iter()
+            .map(arg_to_format)
+            .collect()
+    }
+}
+
+fn arg_to_format(f: &OutputFormatArg) -> OutputFormat {
+    match f {
+        OutputFormatArg::Console => OutputFormat::Console,
+        OutputFormatArg::Csv => OutputFormat::Csv,
+        OutputFormatArg::JsonOcsf => OutputFormat::JsonOcsf,
+        OutputFormatArg::JsonAsff => OutputFormat::JsonAsff,
+        OutputFormatArg::Html => OutputFormat::Html,
+        OutputFormatArg::Sarif => OutputFormat::Sarif,
+        OutputFormatArg::Markdown => OutputFormat::Markdown,
+    }
+}
+
+fn resolve_output_filename(args: &cli::ScanArgs) -> Option<String> {
+    if let Some(base) = args.output_filename.as_ref() {
+        let stamp = if args.unix_timestamp {
+            chrono::Utc::now().timestamp().to_string()
+        } else {
+            chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string()
+        };
+        return Some(format!("{base}-{stamp}"));
+    }
+    None
+}
+
+fn read_checks_file(path: &str) -> anyhow::Result<Vec<String>> {
+    let content = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read --checks-file: {path}"))?;
+    Ok(content
+        .lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .collect())
+}
+
+async fn run_scan_command(ctx: &ScanContext, mut args: cli::ScanArgs) -> anyhow::Result<()> {
+    if args.fix {
+        anyhow::bail!(
+            "--fix / --fixer requested but lancer-prowler is a READ-ONLY clone. \
+             Auto-remediation is intentionally not implemented per the parity \
+             contract. Use upstream `prowler fixer` for write actions."
+        );
+    }
+
+    if let Some(checks_file) = args.checks_file.clone() {
+        let extra = read_checks_file(&checks_file)?;
+        args.check.extend(extra);
+    }
+
+    let mutelist = if let Some(path) = args.mutelist_file.as_ref() {
+        Some(
+            mutelist::Mutelist::load_from_file(path)
+                .with_context(|| format!("Failed to load mutelist: {path}"))?,
+        )
+    } else {
+        None
+    };
+
+    let formats = resolve_output_formats(&args);
+    let output_base = resolve_output_filename(&args);
+
+    let mut findings: Vec<CheckReport> = match args.provider {
+        ProviderArg::Aws => run_aws_scan(&args).await?,
+        ProviderArg::Azure => run_azure_scan(&args)?,
+        ProviderArg::Gcp => run_gcp_scan(&args)?,
+        ProviderArg::Kubernetes => run_kubernetes_scan(&args)?,
+        ProviderArg::M365 => providers::m365::run_stub_scan(
+            &providers::m365::M365Provider::new_stub(
+                args.tenant_id.clone().unwrap_or_else(|| "unknown-tenant".to_string()),
+            ),
+        ),
+        ProviderArg::Github => providers::github::run_stub_scan(
+            &providers::github::GithubProvider::new_stub(
+                std::env::var("GITHUB_ORG").unwrap_or_else(|_| "unknown-org".to_string()),
+            ),
+        ),
+        ProviderArg::Oci => providers::oci::run_stub_scan(
+            &providers::oci::OciProvider::new_stub(
+                std::env::var("OCI_TENANCY_ID").unwrap_or_else(|_| "unknown-tenancy".to_string()),
+            ),
+        ),
+        ProviderArg::Alibaba => providers::alibaba::run_stub_scan(
+            &providers::alibaba::AlibabaProvider::new_stub(
+                std::env::var("ALIBABA_ACCOUNT_ID").unwrap_or_else(|_| "unknown-acct".to_string()),
+            ),
+        ),
+        ProviderArg::Cloudflare => providers::cloudflare::run_stub_scan(
+            &providers::cloudflare::CloudflareProvider::new_stub(
+                std::env::var("CLOUDFLARE_ACCOUNT_ID").unwrap_or_else(|_| "unknown-acct".to_string()),
+            ),
+        ),
+        ProviderArg::Iac => {
+            let root = std::env::current_dir()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| ".".to_string());
+            providers::iac::scan_directory(&root)
+        }
+        ProviderArg::ContainerImage => providers::container_image::run_stub_scan(
+            &providers::container_image::ContainerImageProvider::new_stub(
+                std::env::var("CONTAINER_IMAGE_REF")
+                    .unwrap_or_else(|_| "alpine:latest".to_string()),
+            ),
+        ),
+    };
+
+    // ── filters ──────────────────────────────────────────────────────────────
+    findings = filter_findings(findings, &args);
+
+    // ── mutelist ─────────────────────────────────────────────────────────────
+    if let Some(m) = &mutelist {
+        let n = m.apply(&mut findings);
+        if !ctx.quiet {
+            println!("  [mute] {n} finding(s) muted by mutelist");
+        }
+    }
+
+    // ── Security Hub upload (AWS only) ───────────────────────────────────────
+    if args.upload_security_hub && matches!(args.provider, ProviderArg::Aws) {
+        if let Ok(provider) = providers::aws::AwsProvider::new(args.region.clone()).await {
+            if !ctx.quiet {
+                println!(
+                    "  [upload] Uploading {} findings to AWS Security Hub ({})…",
+                    findings.len(),
+                    &args.security_hub_region
+                );
+            }
+            security_hub::upload_findings_to_security_hub(
+                &provider.config,
+                &findings,
+                &provider.account_id,
+                &args.security_hub_region,
+            )
+            .await
+            .context("Failed to upload findings to Security Hub")?;
+            if !ctx.quiet {
+                println!("  [upload] Security Hub upload complete.");
+            }
+        }
+    }
+
+    // ── outputs ──────────────────────────────────────────────────────────────
+    if args.tui {
+        tui::TuiApp::run(findings.clone()).context("TUI dashboard error")?;
+    }
+    if formats.len() == 1 && output_base.is_none() && args.output_directory.is_none() {
+        write_findings(&findings, formats[0].clone(), None)?;
+    } else {
+        write_findings_multi(
+            &findings,
+            &formats,
+            output_base.as_deref(),
+            args.output_directory.as_deref(),
+        )?;
+    }
+
+    // ── Slack notification ───────────────────────────────────────────────────
+    if args.slack {
+        if let Some(url) = slack::resolve_webhook(&args.slack_webhook) {
+            slack::post_summary(&url, &findings)?;
+        } else {
+            tracing::warn!(
+                "--slack requested but no webhook URL configured (set SLACK_WEBHOOK_URL or --slack-webhook)"
+            );
+        }
+    }
+
+    // ── exit code 3 on failures ──────────────────────────────────────────────
+    let any_fail = findings.iter().any(|f| f.status == Status::Fail);
+    if any_fail && !ctx.ignore_exit_code_3 {
+        std::process::exit(3);
+    }
+
+    Ok(())
+}
+
+fn filter_findings(mut findings: Vec<CheckReport>, args: &cli::ScanArgs) -> Vec<CheckReport> {
+    if !args.check.is_empty() {
+        findings.retain(|f| args.check.iter().any(|c| c == &f.check_id));
+    }
+    if !args.exclude_checks.is_empty() {
+        findings.retain(|f| !args.exclude_checks.iter().any(|c| c == &f.check_id));
+    }
+    if !args.service.is_empty() {
+        findings.retain(|f| args.service.iter().any(|s| s == &f.service));
+    }
+    if !args.exclude_service.is_empty() {
+        findings.retain(|f| !args.exclude_service.iter().any(|s| s == &f.service));
+    }
+    if !args.compliance.is_empty() {
+        findings.retain(|f| {
+            f.compliance
+                .iter()
+                .any(|c| args.compliance.iter().any(|wanted| &c.framework == wanted))
+        });
+    }
+    if let Some(min) = args.severity.as_ref() {
+        findings.retain(|f| severity_rank(&f.severity) >= min.rank());
+    }
+    if let Some(status) = args.status.as_ref() {
+        findings.retain(|f| matches_status(&f.status, status));
+    }
+    findings
+}
+
+fn severity_rank(s: &Severity) -> u8 {
+    match s {
+        Severity::Critical => 5,
+        Severity::High => 4,
+        Severity::Medium => 3,
+        Severity::Low => 2,
+        Severity::Informational => 1,
+    }
+}
+
+fn matches_status(s: &Status, arg: &StatusArg) -> bool {
+    matches!(
+        (s, arg),
+        (Status::Pass, StatusArg::Pass)
+            | (Status::Fail, StatusArg::Fail)
+            | (Status::Muted, StatusArg::Muted),
+    )
+}
+
+async fn run_aws_scan(args: &cli::ScanArgs) -> anyhow::Result<Vec<CheckReport>> {
+    println!("lancer-prowler scan — provider: aws");
+    let provider = providers::aws::AwsProvider::new(args.region.clone())
+        .await
+        .context("Failed to initialize AWS provider")?;
+    println!("  Account ID : {}", provider.account_id);
+    println!("  Identity   : {}", provider.identity_arn);
+    println!(
+        "  Regions    : {} region(s) — {}",
+        provider.regions.len(),
+        if provider.regions.len() <= 5 {
+            provider.regions.join(", ")
+        } else {
+            format!(
+                "{} … and {} more",
+                provider.regions[..5].join(", "),
+                provider.regions.len() - 5
+            )
+        }
+    );
+    Ok(run_scan(&provider).await)
+}
+
+fn run_azure_scan(args: &cli::ScanArgs) -> anyhow::Result<Vec<CheckReport>> {
+    println!("lancer-prowler scan — provider: azure");
+    let subscription_id = std::env::var("AZURE_SUBSCRIPTION_ID")
+        .unwrap_or_else(|_| "unknown-subscription".to_string());
+    println!("  Subscription : {}", subscription_id);
+    let _ = args; // tenant / client args reserved for real impl
+    let storage_svc = AzureStorageService::new_stub(subscription_id.clone());
+    let keyvault_svc = KeyVaultService::new_stub(subscription_id.clone());
+    let compute_svc = AzureComputeService::new_stub(subscription_id.clone());
+
+    let mut findings: Vec<CheckReport> = vec![];
+    for c in all_azure_storage_checks() {
+        findings.extend(c.execute(&storage_svc));
+    }
+    for c in all_azure_keyvault_checks() {
+        findings.extend(c.execute(&keyvault_svc));
+    }
+    for c in all_azure_compute_checks() {
+        findings.extend(c.execute(&compute_svc));
+    }
+    Ok(findings)
+}
+
+fn run_gcp_scan(args: &cli::ScanArgs) -> anyhow::Result<Vec<CheckReport>> {
+    println!("lancer-prowler scan — provider: gcp");
+    let project_id = std::env::var("GOOGLE_CLOUD_PROJECT")
+        .or_else(|_| std::env::var("GCP_PROJECT_ID"))
+        .unwrap_or_else(|_| "unknown-project".to_string());
+    let _ = args;
+    let iam_svc = GcpIamService::new_stub(project_id.clone());
+    let storage_svc = GcpStorageService::new_stub(project_id.clone());
+    let compute_svc = GcpComputeService::new_stub(project_id.clone());
+
+    let mut findings: Vec<CheckReport> = vec![];
+    for c in all_gcp_iam_checks() {
+        findings.extend(c.execute(&iam_svc));
+    }
+    for c in all_gcp_storage_checks() {
+        findings.extend(c.execute(&storage_svc));
+    }
+    for c in all_gcp_compute_checks() {
+        findings.extend(c.execute(&compute_svc));
+    }
+    Ok(findings)
+}
+
+fn run_kubernetes_scan(args: &cli::ScanArgs) -> anyhow::Result<Vec<CheckReport>> {
+    println!("lancer-prowler scan — provider: kubernetes");
+    let cluster_name = std::env::var("KUBE_CLUSTER_NAME")
+        .unwrap_or_else(|_| "default-cluster".to_string());
+    let _ = args;
+    let rbac_svc = RbacService::new_stub(cluster_name.clone());
+    let workloads_svc = WorkloadsService::new_stub(cluster_name.clone());
+    let network_svc = NetworkService::new_stub(cluster_name.clone());
+
+    let mut findings: Vec<CheckReport> = vec![];
+    for c in all_k8s_rbac_checks() {
+        findings.extend(c.execute(&rbac_svc));
+    }
+    for c in all_k8s_workload_checks() {
+        findings.extend(c.execute(&workloads_svc));
+    }
+    for c in all_k8s_network_checks() {
+        findings.extend(c.execute(&network_svc));
+    }
+    Ok(findings)
+}
+
+fn run_ingest(_ctx: &ScanContext, args: cli::IngestArgs) -> anyhow::Result<()> {
+    let fmt = args.format.as_ref().and_then(|f| match f {
+        OutputFormatArg::Csv => Some(ingest::IngestFormat::Csv),
+        OutputFormatArg::JsonOcsf => Some(ingest::IngestFormat::JsonOcsf),
+        OutputFormatArg::JsonAsff => Some(ingest::IngestFormat::JsonAsff),
+        OutputFormatArg::Sarif => Some(ingest::IngestFormat::Sarif),
+        _ => None,
+    });
+    let findings = ingest::ingest_file(&args.path, fmt)?;
+    println!("Ingested {} findings from {}", findings.len(), args.path);
+
+    let formats: Vec<OutputFormat> = if args.output_formats.is_empty() {
+        vec![OutputFormat::Console]
+    } else {
+        args.output_formats.iter().map(arg_to_format).collect()
+    };
+    write_findings_multi(&findings, &formats, args.output_filename.as_deref(), None)
+}
+
+fn all_known_checks() -> Vec<models::CheckMetadata> {
+    let mut metas: Vec<models::CheckMetadata> = vec![];
+    // AWS — pull from each check's metadata()
+    for c in all_iam_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_s3_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_ec2_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_cloudtrail_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_kms_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_awsconfig_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_vpc_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_rds_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_lambda_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_guardduty_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_securityhub_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_secretsmanager_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_elbv2_checks() {
+        metas.push(c.metadata().clone());
+    }
+    // Azure
+    for c in all_azure_storage_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_azure_keyvault_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_azure_compute_checks() {
+        metas.push(c.metadata().clone());
+    }
+    // GCP
+    for c in all_gcp_iam_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_gcp_storage_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_gcp_compute_checks() {
+        metas.push(c.metadata().clone());
+    }
+    // Kubernetes
+    for c in all_k8s_rbac_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_k8s_workload_checks() {
+        metas.push(c.metadata().clone());
+    }
+    for c in all_k8s_network_checks() {
+        metas.push(c.metadata().clone());
+    }
+    // Stubs
+    metas.extend(providers::m365::sample_checks());
+    metas.extend(providers::github::sample_checks());
+    metas.extend(providers::oci::sample_checks());
+    metas.extend(providers::alibaba::sample_checks());
+    metas.extend(providers::cloudflare::sample_checks());
+    metas.extend(providers::iac::sample_checks());
+    metas.extend(providers::container_image::sample_checks());
+    metas
+}
+
+fn list_checks(args: cli::ListChecksArgs, as_json: bool) {
+    let metas = all_known_checks();
+    let mut filtered = metas;
+    if let Some(p) = args.provider.as_ref() {
+        let needle = p.to_string();
+        filtered.retain(|m| m.provider == needle);
+    }
+    if let Some(s) = args.service.as_ref() {
+        filtered.retain(|m| &m.service == s);
+    }
+    if let Some(sev) = args.severity.as_ref() {
+        let sev_rank = sev.rank();
+        filtered.retain(|m| severity_rank(&m.severity) == sev_rank);
+    }
+    if let Some(comp) = args.compliance.as_ref() {
+        filtered.retain(|m| m.compliance.iter().any(|c| &c.framework == comp));
+    }
+    if as_json {
+        let json = serde_json::to_string_pretty(&filtered).unwrap_or_default();
+        println!("{json}");
+    } else {
+        println!("Available checks ({} total):", filtered.len());
+        for m in &filtered {
+            println!(
+                "  [{:14}][{:<13}] {} — {}",
+                m.provider, m.service, m.id, m.severity
+            );
+        }
+    }
+}
+
+fn list_services(args: cli::ListServicesArgs) {
+    use std::collections::BTreeMap;
+    let by_provider: BTreeMap<&str, Vec<&str>> = [
+        ("aws", vec![
+            "iam", "s3", "ec2", "cloudtrail", "kms", "config", "vpc", "rds",
+            "lambda", "guardduty", "securityhub", "secretsmanager", "elbv2",
+        ]),
+        ("azure", vec!["storage", "keyvault", "compute"]),
+        ("gcp", vec!["iam", "storage", "compute"]),
+        ("kubernetes", vec!["rbac", "workloads", "network"]),
+        ("m365", providers::m365::SERVICES.to_vec()),
+        ("github", providers::github::SERVICES.to_vec()),
+        ("oci", providers::oci::SERVICES.to_vec()),
+        ("alibaba", providers::alibaba::SERVICES.to_vec()),
+        ("cloudflare", providers::cloudflare::SERVICES.to_vec()),
+        ("iac", providers::iac::FILE_TYPES.to_vec()),
+        ("container-image", vec!["vulnerability", "secrets", "config", "malware"]),
+    ]
+    .into_iter()
+    .collect();
+
+    let needle = args.provider.as_ref().map(|p| p.to_string());
+    for (prov, services) in &by_provider {
+        if let Some(n) = needle.as_ref() {
+            if n != prov {
+                continue;
+            }
+        }
+        println!("[{prov}]");
+        for s in services {
+            println!("  {s}");
+        }
+    }
+}
+
+fn list_compliance(args: cli::ListComplianceArgs) {
+    let compliance_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("compliance");
+    let mut entries: Vec<(String, String)> = vec![];
+    if let Ok(rd) = std::fs::read_dir(&compliance_dir) {
+        for entry in rd.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.ends_with(".json") {
+                continue;
+            }
+            let content = std::fs::read_to_string(entry.path()).unwrap_or_default();
+            let provider = serde_json::from_str::<serde_json::Value>(&content)
+                .ok()
+                .and_then(|v| v.get("Provider").cloned())
+                .and_then(|v| v.as_str().map(|s| s.to_string()))
+                .unwrap_or_else(|| "unknown".to_string());
+            entries.push((name, provider));
+        }
+    }
+    entries.sort();
+    let needle = args.provider.as_ref().map(|p| p.to_string());
+    println!("Available compliance frameworks ({} bundled):", entries.len());
+    for (name, prov) in &entries {
+        if let Some(n) = needle.as_ref() {
+            if n != prov {
+                continue;
+            }
+        }
+        println!("  [{prov:<14}] {name}");
+    }
+}
+
+fn list_compliance_requirements(args: cli::ListComplianceRequirementsArgs) -> anyhow::Result<()> {
+    let compliance_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("compliance");
+    let name = if args.framework.ends_with(".json") {
+        args.framework.clone()
+    } else {
+        format!("{}.json", args.framework)
+    };
+    let path = compliance_dir.join(&name);
+    if !path.exists() {
+        anyhow::bail!("Compliance framework not found: {name}. Try `list-compliance`.");
+    }
+    let content = std::fs::read_to_string(&path)?;
+    let v: serde_json::Value = serde_json::from_str(&content)?;
+    let framework = v["Framework"].as_str().unwrap_or("?");
+    let version = v["Version"].as_str().unwrap_or("?");
+    let provider = v["Provider"].as_str().unwrap_or("?");
+    println!("Framework : {framework}");
+    println!("Version   : {version}");
+    println!("Provider  : {provider}");
+    println!("Requirements:");
+    if let Some(reqs) = v["Requirements"].as_array() {
+        for r in reqs {
+            let id = r["Id"].as_str().unwrap_or("?");
+            let desc = r["Description"].as_str().unwrap_or("?");
+            let checks = r["Checks"].as_array().cloned().unwrap_or_default();
+            println!("  - {id}: {desc}");
+            for c in checks {
+                if let Some(s) = c.as_str() {
+                    println!("      * {s}");
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn list_categories() {
+    let cats = [
+        "encryption",
+        "logging",
+        "trust-boundaries",
+        "internet-exposure",
+        "iam-least-privilege",
+        "secrets-management",
+        "backups-and-dr",
+        "threat-detection",
+        "rbac",
+        "supply-chain",
+    ];
+    println!("Available categories ({}):", cats.len());
+    for c in cats {
+        println!("  {c}");
+    }
+}
+
+fn list_fixer() {
+    // Upstream prowler `--list-fixer` enumerates checks that have remediation
+    // code (the `--fix` subset). lancer-prowler is read-only, so the list is
+    // surfaced as informational and the actions are refused at runtime.
+    let fixable_ids = [
+        "iam_password_policy_minimum_length_14",
+        "iam_password_policy_uppercase",
+        "iam_password_policy_lowercase",
+        "iam_password_policy_symbol",
+        "iam_password_policy_number",
+        "iam_password_policy_reuse_24",
+        "iam_password_policy_expires_passwords_within_90_days_or_less",
+        "iam_no_root_access_key",
+        "iam_avoid_root_usage",
+        "s3_bucket_default_encryption",
+        "s3_bucket_secure_transport_policy",
+        "ec2_ebs_default_encryption",
+        "rds_instance_storage_encrypted",
+        "kms_cmk_rotation_enabled",
+        "cloudtrail_multi_region_enabled",
+        "cloudtrail_log_file_validation_enabled",
+        "guardduty_is_enabled",
+        "securityhub_enabled",
+    ];
+    println!(
+        "Fixable upstream checks ({}) — lancer-prowler is read-only so --fix is REFUSED at runtime, but parity requires this list:",
+        fixable_ids.len()
+    );
+    for id in fixable_ids {
+        println!("  {id}");
+    }
 }
 
 /// Build the complete list of CloudTrail check instances.
