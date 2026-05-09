@@ -1,5 +1,6 @@
 pub mod console;
 pub mod csv_output;
+pub mod html_output;
 pub mod json_ocsf;
 
 use crate::models::CheckReport;
@@ -47,7 +48,9 @@ pub fn write_findings(
             println!("OCSF JSON written to: {dest}");
         }
         OutputFormat::Html => {
-            bail!("HTML output is not yet implemented (Week 2)");
+            let dest = path.unwrap_or("findings.html");
+            html_output::write_html(findings, dest)?;
+            println!("HTML written to: {dest}");
         }
     }
     Ok(())

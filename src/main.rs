@@ -120,14 +120,38 @@ use providers::aws::checks::lambda::{
     lambda_function_not_publicly_accessible::LambdaFunctionNotPubliclyAccessible,
     lambda_function_url_public::LambdaFunctionUrlPublic,
 };
+use providers::aws::checks::guardduty::{
+    guardduty_is_enabled::GuardDutyIsEnabled,
+    guardduty_finding_publishing_frequency_six_hours_or_less::GuardDutyFindingPublishingFrequencySixHoursOrLess,
+};
+use providers::aws::checks::securityhub::{
+    securityhub_enabled::SecurityHubEnabled,
+    securityhub_auto_enable_controls::SecurityHubAutoEnableControls,
+};
+use providers::aws::checks::secretsmanager::{
+    secretsmanager_secret_rotation_enabled::SecretsManagerSecretRotationEnabled,
+    secretsmanager_secret_encrypted_with_cmk::SecretsManagerSecretEncryptedWithCmk,
+    secretsmanager_secret_unused_45_days::SecretsManagerSecretUnused45Days,
+};
+use providers::aws::checks::elbv2::{
+    elbv2_internet_facing::Elbv2InternetFacing,
+    elbv2_access_logs_enabled::Elbv2AccessLogsEnabled,
+    elbv2_deletion_protection_enabled::Elbv2DeletionProtectionEnabled,
+    elbv2_insecure_listener_protocols::Elbv2InsecureListenerProtocols,
+    elbv2_listener_uses_secure_ssl_policy::Elbv2ListenerUsesSecureSslPolicy,
+};
 use providers::aws::services::awsconfig::AwsConfigService;
 use providers::aws::services::cloudtrail::CloudtrailService;
 use providers::aws::services::ec2::Ec2Service;
+use providers::aws::services::elbv2::Elbv2Service;
+use providers::aws::services::guardduty::GuardDutyService;
 use providers::aws::services::iam::IamService;
 use providers::aws::services::kms::KmsService;
 use providers::aws::services::lambda::LambdaService;
 use providers::aws::services::rds::RdsService;
 use providers::aws::services::s3::S3Service;
+use providers::aws::services::secretsmanager::SecretsManagerService;
+use providers::aws::services::securityhub::SecurityHubService;
 use providers::aws::services::vpc::VpcService;
 
 #[tokio::main]
@@ -379,6 +403,42 @@ fn all_lambda_checks() -> Vec<Box<dyn check::Check>> {
         Box::new(LambdaFunctionNotPubliclyAccessible),
         Box::new(LambdaFunctionEnvironmentVariablesEncrypted),
         Box::new(LambdaFunctionInVpc),
+    ]
+}
+
+/// Build the complete list of GuardDuty check instances.
+fn all_guardduty_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(GuardDutyIsEnabled),
+        Box::new(GuardDutyFindingPublishingFrequencySixHoursOrLess),
+    ]
+}
+
+/// Build the complete list of Security Hub check instances.
+fn all_securityhub_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(SecurityHubEnabled),
+        Box::new(SecurityHubAutoEnableControls),
+    ]
+}
+
+/// Build the complete list of Secrets Manager check instances.
+fn all_secretsmanager_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(SecretsManagerSecretRotationEnabled),
+        Box::new(SecretsManagerSecretEncryptedWithCmk),
+        Box::new(SecretsManagerSecretUnused45Days),
+    ]
+}
+
+/// Build the complete list of ELBv2 check instances.
+fn all_elbv2_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(Elbv2InternetFacing),
+        Box::new(Elbv2AccessLogsEnabled),
+        Box::new(Elbv2DeletionProtectionEnabled),
+        Box::new(Elbv2InsecureListenerProtocols),
+        Box::new(Elbv2ListenerUsesSecureSslPolicy),
     ]
 }
 
@@ -693,6 +753,134 @@ async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
     println!("  [scan] Running {} Lambda checks…", lambda_checks.len());
     for c in &lambda_checks {
         findings.extend(c.execute(&lambda_service));
+    }
+
+    // ── GuardDuty ─────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching GuardDuty state…");
+    let guardduty_service = match GuardDutyService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching GuardDuty state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no GuardDuty/SecHub/Secrets/ELBv2) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] GuardDuty state fetched — {} detector(s)",
+        guardduty_service.detectors.len(),
+    );
+
+    let guardduty_checks = all_guardduty_checks();
+    println!("  [scan] Running {} GuardDuty checks…", guardduty_checks.len());
+    for c in &guardduty_checks {
+        findings.extend(c.execute(&guardduty_service));
+    }
+
+    // ── Security Hub ──────────────────────────────────────────────────────────
+    println!("  [scan] Fetching Security Hub state…");
+    let securityhub_service = match SecurityHubService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching Security Hub state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no SecHub/Secrets/ELBv2) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] Security Hub state fetched — {} hub(s)",
+        securityhub_service.hubs.len(),
+    );
+
+    let securityhub_checks = all_securityhub_checks();
+    println!("  [scan] Running {} Security Hub checks…", securityhub_checks.len());
+    for c in &securityhub_checks {
+        findings.extend(c.execute(&securityhub_service));
+    }
+
+    // ── Secrets Manager ───────────────────────────────────────────────────────
+    println!("  [scan] Fetching Secrets Manager state…");
+    let secretsmanager_service = match SecretsManagerService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching Secrets Manager state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no Secrets/ELBv2) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] Secrets Manager state fetched — {} secret(s)",
+        secretsmanager_service.secrets.len(),
+    );
+
+    let secretsmanager_checks = all_secretsmanager_checks();
+    println!("  [scan] Running {} Secrets Manager checks…", secretsmanager_checks.len());
+    for c in &secretsmanager_checks {
+        findings.extend(c.execute(&secretsmanager_service));
+    }
+
+    // ── ELBv2 ─────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching ELBv2 state…");
+    let elbv2_service = match Elbv2Service::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching ELBv2 state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no ELBv2) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] ELBv2 state fetched — {} load balancer(s)",
+        elbv2_service.load_balancers.len(),
+    );
+
+    let elbv2_checks = all_elbv2_checks();
+    println!("  [scan] Running {} ELBv2 checks…", elbv2_checks.len());
+    for c in &elbv2_checks {
+        findings.extend(c.execute(&elbv2_service));
     }
 
     let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
