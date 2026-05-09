@@ -42,6 +42,8 @@ aws-sdk-elasticloadbalancingv2 = "1"
 # Azure provider is stubbed; real implementation would use the Azure REST API via reqwest
 # GCP SDK crates excluded — google-cloud-* crates have unstable APIs
 # GCP provider is stubbed; real implementation would use GCP REST APIs via reqwest
+# kube and k8s-openapi excluded — version 3.x not available; use latest stable when enabling
+# Kubernetes provider is stubbed; enable with: kube = "0.95" k8s-openapi = { version = "0.23", features = ["latest"] }
 
 [profile.release]
 opt-level = 3

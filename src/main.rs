@@ -140,6 +140,36 @@ use providers::aws::checks::elbv2::{
     elbv2_insecure_listener_protocols::Elbv2InsecureListenerProtocols,
     elbv2_listener_uses_secure_ssl_policy::Elbv2ListenerUsesSecureSslPolicy,
 };
+// ── Kubernetes imports ────────────────────────────────────────────────────────
+use providers::kubernetes::checks::rbac::{
+    rbac_cluster_admin_bindings::RbacClusterAdminBindings,
+    rbac_wildcard_verbs::RbacWildcardVerbs,
+    rbac_bind_cluster_admin_role::RbacBindClusterAdminRole,
+    rbac_no_anonymous_access::RbacNoAnonymousAccess,
+    rbac_service_account_least_privilege::RbacServiceAccountLeastPrivilege,
+    rbac_no_cluster_admin_default::RbacNoClusterAdminDefault,
+};
+use providers::kubernetes::checks::workloads::{
+    workloads_no_privileged_containers::WorkloadsNoPrivilegedContainers,
+    workloads_no_privilege_escalation::WorkloadsNoPrivilegeEscalation,
+    workloads_run_as_non_root::WorkloadsRunAsNonRoot,
+    workloads_read_only_root_filesystem::WorkloadsReadOnlyRootFilesystem,
+    workloads_no_host_network::WorkloadsNoHostNetwork,
+    workloads_no_host_pid_namespace::WorkloadsNoHostPidNamespace,
+    workloads_resource_limits_set::WorkloadsResourceLimitsSet,
+    workloads_no_root_capabilities::WorkloadsNoRootCapabilities,
+    workloads_automount_service_account_token::WorkloadsAutomountServiceAccountToken,
+};
+use providers::kubernetes::checks::network::{
+    network_namespace_has_network_policy::NetworkNamespaceHasNetworkPolicy,
+    network_default_deny_policy::NetworkDefaultDenyPolicy,
+    network_no_exposed_dashboard::NetworkNoExposedDashboard,
+    network_pods_ingress_traffic_restricted::NetworkPodsIngressTrafficRestricted,
+    network_pods_egress_traffic_restricted::NetworkPodsEgressTrafficRestricted,
+};
+use providers::kubernetes::services::rbac::RbacService;
+use providers::kubernetes::services::workloads::WorkloadsService;
+use providers::kubernetes::services::network::NetworkService;
 // ── GCP imports ───────────────────────────────────────────────────────────────
 use providers::gcp::checks::iam::{
     iam_no_service_account_with_admin_privileges::IamNoServiceAccountWithAdminPrivileges,
@@ -369,6 +399,52 @@ async fn main() -> anyhow::Result<()> {
                     println!("  [scan] Running {} GCP Compute checks…", gcp_compute_checks.len());
                     for check in &gcp_compute_checks {
                         findings.extend(check.execute(&compute_svc));
+                    }
+
+                    let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+                    let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+                    println!(
+                        "  [scan] Complete — {} findings ({} PASS, {} FAIL)",
+                        findings.len(), pass, fail
+                    );
+
+                    write_findings(&findings, format, args.output_path.as_deref())
+                        .context("Failed to write findings")?;
+                }
+
+                ProviderArg::Kubernetes => {
+                    println!("lancer-prowler scan — provider: kubernetes");
+
+                    let cluster_name = std::env::var("KUBE_CLUSTER_NAME")
+                        .unwrap_or_else(|_| "default-cluster".to_string());
+
+                    let _k8s_provider =
+                        providers::kubernetes::KubernetesProvider::new_stub(cluster_name.clone());
+
+                    println!("  Cluster : {}", cluster_name);
+
+                    let rbac_svc = RbacService::new_stub(cluster_name.clone());
+                    let workloads_svc = WorkloadsService::new_stub(cluster_name.clone());
+                    let network_svc = NetworkService::new_stub(cluster_name.clone());
+
+                    let mut findings: Vec<models::CheckReport> = vec![];
+
+                    let k8s_rbac_checks = all_k8s_rbac_checks();
+                    println!("  [scan] Running {} Kubernetes RBAC checks…", k8s_rbac_checks.len());
+                    for check in &k8s_rbac_checks {
+                        findings.extend(check.execute(&rbac_svc));
+                    }
+
+                    let k8s_workload_checks = all_k8s_workload_checks();
+                    println!("  [scan] Running {} Kubernetes Workload checks…", k8s_workload_checks.len());
+                    for check in &k8s_workload_checks {
+                        findings.extend(check.execute(&workloads_svc));
+                    }
+
+                    let k8s_network_checks = all_k8s_network_checks();
+                    println!("  [scan] Running {} Kubernetes Network checks…", k8s_network_checks.len());
+                    for check in &k8s_network_checks {
+                        findings.extend(check.execute(&network_svc));
                     }
 
                     let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
@@ -725,6 +801,44 @@ fn all_ec2_checks() -> Vec<Box<dyn check::Check>> {
         Box::new(Ec2InstanceInternetFacingWithInstanceProfile),
         Box::new(Ec2AmiPublic),
         Box::new(Ec2ElasticIpUnassigned),
+    ]
+}
+
+/// Build the complete list of Kubernetes RBAC check instances.
+fn all_k8s_rbac_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(RbacClusterAdminBindings),
+        Box::new(RbacWildcardVerbs),
+        Box::new(RbacBindClusterAdminRole),
+        Box::new(RbacNoAnonymousAccess),
+        Box::new(RbacServiceAccountLeastPrivilege),
+        Box::new(RbacNoClusterAdminDefault),
+    ]
+}
+
+/// Build the complete list of Kubernetes Workloads check instances.
+fn all_k8s_workload_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(WorkloadsNoPrivilegedContainers),
+        Box::new(WorkloadsNoPrivilegeEscalation),
+        Box::new(WorkloadsRunAsNonRoot),
+        Box::new(WorkloadsReadOnlyRootFilesystem),
+        Box::new(WorkloadsNoHostNetwork),
+        Box::new(WorkloadsNoHostPidNamespace),
+        Box::new(WorkloadsResourceLimitsSet),
+        Box::new(WorkloadsNoRootCapabilities),
+        Box::new(WorkloadsAutomountServiceAccountToken),
+    ]
+}
+
+/// Build the complete list of Kubernetes Network check instances.
+fn all_k8s_network_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(NetworkNamespaceHasNetworkPolicy),
+        Box::new(NetworkDefaultDenyPolicy),
+        Box::new(NetworkNoExposedDashboard),
+        Box::new(NetworkPodsIngressTrafficRestricted),
+        Box::new(NetworkPodsEgressTrafficRestricted),
     ]
 }
 
