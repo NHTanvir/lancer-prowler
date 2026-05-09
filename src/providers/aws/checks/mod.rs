@@ -1,0 +1,13 @@
+pub mod awsconfig;
+pub mod cloudtrail;
+pub mod ec2;
+pub mod elbv2;
+pub mod guardduty;
+pub mod iam;
+pub mod kms;
+pub mod lambda;
+pub mod rds;
+pub mod s3;
+pub mod secretsmanager;
+pub mod securityhub;
+pub mod vpc;

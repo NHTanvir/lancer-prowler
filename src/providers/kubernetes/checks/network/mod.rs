@@ -1,0 +1,5 @@
+pub mod network_namespace_has_network_policy;
+pub mod network_default_deny_policy;
+pub mod network_no_exposed_dashboard;
+pub mod network_pods_ingress_traffic_restricted;
+pub mod network_pods_egress_traffic_restricted;

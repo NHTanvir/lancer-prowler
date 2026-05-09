@@ -1,0 +1,9 @@
+pub mod workloads_no_privileged_containers;
+pub mod workloads_no_privilege_escalation;
+pub mod workloads_run_as_non_root;
+pub mod workloads_read_only_root_filesystem;
+pub mod workloads_no_host_network;
+pub mod workloads_no_host_pid_namespace;
+pub mod workloads_resource_limits_set;
+pub mod workloads_no_root_capabilities;
+pub mod workloads_automount_service_account_token;

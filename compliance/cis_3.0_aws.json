@@ -1,0 +1,122 @@
+{
+  "Framework": "CIS AWS Foundations Benchmark",
+  "Version": "3.0",
+  "Provider": "aws",
+  "Requirements": [
+    {
+      "Id": "1.4",
+      "Description": "Ensure no root user account access key exists",
+      "Checks": ["iam_no_root_access_key"],
+      "Attributes": [{"Section": "1", "SubSection": "4", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.5",
+      "Description": "Ensure MFA is enabled for the root user account",
+      "Checks": ["iam_root_mfa_enabled"],
+      "Attributes": [{"Section": "1", "SubSection": "5", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.6",
+      "Description": "Ensure hardware MFA is enabled for the root user account",
+      "Checks": ["iam_root_hardware_mfa_enabled"],
+      "Attributes": [{"Section": "1", "SubSection": "6", "Profile": "Level 2"}]
+    },
+    {
+      "Id": "1.7",
+      "Description": "Eliminate use of the root user for administrative and daily tasks",
+      "Checks": ["iam_avoid_root_usage"],
+      "Attributes": [{"Section": "1", "SubSection": "7", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.8",
+      "Description": "Ensure IAM password policy requires minimum length of 14 or greater",
+      "Checks": [
+        "iam_password_policy_minimum_length_14",
+        "iam_password_policy_uppercase",
+        "iam_password_policy_lowercase",
+        "iam_password_policy_symbol",
+        "iam_password_policy_number"
+      ],
+      "Attributes": [{"Section": "1", "SubSection": "8", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.9",
+      "Description": "Ensure IAM password policy prevents password reuse",
+      "Checks": ["iam_password_policy_reuse_24"],
+      "Attributes": [{"Section": "1", "SubSection": "9", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.10",
+      "Description": "Ensure MFA is enabled for all IAM users that have a console password",
+      "Checks": ["iam_user_mfa_enabled_console_access"],
+      "Attributes": [{"Section": "1", "SubSection": "10", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.11",
+      "Description": "Do not setup access keys during initial user setup for all IAM users that have a console password",
+      "Checks": ["iam_user_no_setup_initial_access_key"],
+      "Attributes": [{"Section": "1", "SubSection": "11", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.13",
+      "Description": "Ensure there is only one active access key available for any single IAM user",
+      "Checks": ["iam_user_two_active_access_key"],
+      "Attributes": [{"Section": "1", "SubSection": "13", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.14",
+      "Description": "Ensure access keys are rotated every 90 days or less",
+      "Checks": ["iam_rotate_access_key_90_days"],
+      "Attributes": [{"Section": "1", "SubSection": "14", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.15",
+      "Description": "Ensure IAM Users Receive Permissions Only Through Groups",
+      "Checks": [
+        "iam_policy_attached_only_to_group_or_roles",
+        "iam_inline_policy_no_administrative_privileges"
+      ],
+      "Attributes": [{"Section": "1", "SubSection": "15", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.16",
+      "Description": "Ensure IAM policies that allow full administrative privileges are not attached",
+      "Checks": [
+        "iam_customer_attached_policy_no_administrative_privileges",
+        "iam_aws_attached_policy_no_administrative_privileges",
+        "iam_policy_allows_privilege_escalation"
+      ],
+      "Attributes": [{"Section": "1", "SubSection": "16", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.17",
+      "Description": "Ensure a support role has been created to manage incidents with AWS Support",
+      "Checks": ["iam_support_role_created"],
+      "Attributes": [{"Section": "1", "SubSection": "17", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.20",
+      "Description": "Ensure that IAM Access analyzer is enabled for all regions",
+      "Checks": ["iam_role_cross_account_readonlyaccess_policy"],
+      "Attributes": [{"Section": "1", "SubSection": "20", "Profile": "Level 1"}]
+    },
+    {
+      "Id": "1.21",
+      "Description": "Ensure IAM users are managed centrally via identity federation or AWS Organizations",
+      "Checks": ["iam_check_saml_providers_sts"],
+      "Attributes": [{"Section": "1", "SubSection": "21", "Profile": "Level 2"}]
+    },
+    {
+      "Id": "3.6",
+      "Description": "Ensure AWS Config is enabled in all regions",
+      "Checks": ["iam_policy_no_full_access_to_cloudtrail"],
+      "Attributes": [{"Section": "3", "SubSection": "6", "Profile": "Level 2"}]
+    },
+    {
+      "Id": "3.7",
+      "Description": "Ensure CloudTrail logs are encrypted at rest using KMS CMKs",
+      "Checks": ["iam_policy_no_full_access_to_kms"],
+      "Attributes": [{"Section": "3", "SubSection": "7", "Profile": "Level 2"}]
+    }
+  ]
+}
