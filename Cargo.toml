@@ -40,6 +40,8 @@ aws-sdk-elasticloadbalancingv2 = "1"
 # VPC is also part of EC2 SDK — stubbed for the same reason
 # Azure SDK crates (azure_core, azure_identity, etc.) excluded — not available on crates.io as stable crates
 # Azure provider is stubbed; real implementation would use the Azure REST API via reqwest
+# GCP SDK crates excluded — google-cloud-* crates have unstable APIs
+# GCP provider is stubbed; real implementation would use GCP REST APIs via reqwest
 
 [profile.release]
 opt-level = 3

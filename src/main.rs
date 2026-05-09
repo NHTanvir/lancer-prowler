@@ -140,6 +140,41 @@ use providers::aws::checks::elbv2::{
     elbv2_insecure_listener_protocols::Elbv2InsecureListenerProtocols,
     elbv2_listener_uses_secure_ssl_policy::Elbv2ListenerUsesSecureSslPolicy,
 };
+// ── GCP imports ───────────────────────────────────────────────────────────────
+use providers::gcp::checks::iam::{
+    iam_no_service_account_with_admin_privileges::IamNoServiceAccountWithAdminPrivileges,
+    iam_service_account_key_not_user_managed::IamServiceAccountKeyNotUserManaged,
+    iam_avoid_primitive_roles::IamAvoidPrimitiveRoles,
+    iam_project_has_owner::IamProjectHasOwner,
+    iam_no_public_access::IamNoPublicAccess,
+    iam_sa_no_admin_privileges::IamSaNoAdminPrivileges,
+    iam_service_account_key_rotation_90_days::IamServiceAccountKeyRotation90Days,
+    iam_workload_identity_federation_enabled::IamWorkloadIdentityFederationEnabled,
+};
+use providers::gcp::checks::storage::{
+    storage_bucket_uniform_bucket_level_access::StorageBucketUniformBucketLevelAccess,
+    storage_bucket_public_access_prevention::StorageBucketPublicAccessPrevention,
+    storage_bucket_versioning_enabled::StorageBucketVersioningEnabled,
+    storage_bucket_logging_enabled::StorageBucketLoggingEnabled,
+    storage_bucket_kms_encryption::StorageBucketKmsEncryption,
+    storage_bucket_retention_policy::StorageBucketRetentionPolicy,
+    storage_bucket_not_publicly_accessible::StorageBucketNotPubliclyAccessible,
+    storage_bucket_label_environment::StorageBucketLabelEnvironment,
+};
+use providers::gcp::checks::compute::{
+    compute_instance_ip_forwarding_disabled::ComputeInstanceIpForwardingDisabled,
+    compute_instance_serial_port_disabled::ComputeInstanceSerialPortDisabled,
+    compute_instance_oslogin_enabled::ComputeInstanceOsloginEnabled,
+    compute_instance_shielded_vm_enabled::ComputeInstanceShieldedVmEnabled,
+    compute_instance_no_public_ip::ComputeInstanceNoPublicIp,
+    compute_instance_default_service_account::ComputeInstanceDefaultServiceAccount,
+    compute_instance_default_service_account_full_access::ComputeInstanceDefaultServiceAccountFullAccess,
+    compute_firewall_rule_no_ingress_0_0_0_0_22::ComputeFirewallRuleNoIngress0000022,
+    compute_firewall_rule_no_ingress_0_0_0_0_3389::ComputeFirewallRuleNoIngress000003389,
+};
+use providers::gcp::services::iam::GcpIamService;
+use providers::gcp::services::storage::GcpStorageService;
+use providers::gcp::services::compute::GcpComputeService;
 // ── Azure imports ─────────────────────────────────────────────────────────────
 use providers::azure::checks::storage::{
     storage_account_secure_transfer_required::StorageAccountSecureTransferRequired,
@@ -287,6 +322,52 @@ async fn main() -> anyhow::Result<()> {
                     let compute_checks = all_azure_compute_checks();
                     println!("  [scan] Running {} Azure Compute checks…", compute_checks.len());
                     for check in &compute_checks {
+                        findings.extend(check.execute(&compute_svc));
+                    }
+
+                    let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+                    let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+                    println!(
+                        "  [scan] Complete — {} findings ({} PASS, {} FAIL)",
+                        findings.len(), pass, fail
+                    );
+
+                    write_findings(&findings, format, args.output_path.as_deref())
+                        .context("Failed to write findings")?;
+                }
+
+                ProviderArg::Gcp => {
+                    println!("lancer-prowler scan — provider: gcp");
+
+                    let project_id = std::env::var("GOOGLE_CLOUD_PROJECT")
+                        .or_else(|_| std::env::var("GCP_PROJECT_ID"))
+                        .unwrap_or_else(|_| "unknown-project".to_string());
+                    let gcp_provider =
+                        providers::gcp::GcpProvider::new_stub(project_id.clone());
+
+                    println!("  Project : {}", gcp_provider.project_id);
+
+                    let iam_svc = GcpIamService::new_stub(project_id.clone());
+                    let storage_svc = GcpStorageService::new_stub(project_id.clone());
+                    let compute_svc = GcpComputeService::new_stub(project_id.clone());
+
+                    let mut findings: Vec<models::CheckReport> = vec![];
+
+                    let gcp_iam_checks = all_gcp_iam_checks();
+                    println!("  [scan] Running {} GCP IAM checks…", gcp_iam_checks.len());
+                    for check in &gcp_iam_checks {
+                        findings.extend(check.execute(&iam_svc));
+                    }
+
+                    let gcp_storage_checks = all_gcp_storage_checks();
+                    println!("  [scan] Running {} GCP Storage checks…", gcp_storage_checks.len());
+                    for check in &gcp_storage_checks {
+                        findings.extend(check.execute(&storage_svc));
+                    }
+
+                    let gcp_compute_checks = all_gcp_compute_checks();
+                    println!("  [scan] Running {} GCP Compute checks…", gcp_compute_checks.len());
+                    for check in &gcp_compute_checks {
                         findings.extend(check.execute(&compute_svc));
                     }
 
@@ -566,6 +647,49 @@ fn all_azure_compute_checks() -> Vec<Box<dyn check::Check>> {
         Box::new(ComputeVmEndpointProtection),
         Box::new(ComputeVmNetworkSecurityGroup),
         Box::new(ComputeVmPublicIpAddress),
+    ]
+}
+
+/// Build the complete list of GCP IAM check instances.
+fn all_gcp_iam_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(IamNoServiceAccountWithAdminPrivileges),
+        Box::new(IamServiceAccountKeyNotUserManaged),
+        Box::new(IamAvoidPrimitiveRoles),
+        Box::new(IamProjectHasOwner),
+        Box::new(IamNoPublicAccess),
+        Box::new(IamSaNoAdminPrivileges),
+        Box::new(IamServiceAccountKeyRotation90Days),
+        Box::new(IamWorkloadIdentityFederationEnabled),
+    ]
+}
+
+/// Build the complete list of GCP Storage check instances.
+fn all_gcp_storage_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(StorageBucketUniformBucketLevelAccess),
+        Box::new(StorageBucketPublicAccessPrevention),
+        Box::new(StorageBucketVersioningEnabled),
+        Box::new(StorageBucketLoggingEnabled),
+        Box::new(StorageBucketKmsEncryption),
+        Box::new(StorageBucketRetentionPolicy),
+        Box::new(StorageBucketNotPubliclyAccessible),
+        Box::new(StorageBucketLabelEnvironment),
+    ]
+}
+
+/// Build the complete list of GCP Compute check instances.
+fn all_gcp_compute_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(ComputeInstanceIpForwardingDisabled),
+        Box::new(ComputeInstanceSerialPortDisabled),
+        Box::new(ComputeInstanceOsloginEnabled),
+        Box::new(ComputeInstanceShieldedVmEnabled),
+        Box::new(ComputeInstanceNoPublicIp),
+        Box::new(ComputeInstanceDefaultServiceAccount),
+        Box::new(ComputeInstanceDefaultServiceAccountFullAccess),
+        Box::new(ComputeFirewallRuleNoIngress0000022),
+        Box::new(ComputeFirewallRuleNoIngress000003389),
     ]
 }
 
