@@ -4,7 +4,9 @@ pub mod csv_output;
 pub mod html_output;
 pub mod json_ocsf;
 pub mod markdown;
+pub mod pdf_output;
 pub mod sarif;
+pub mod xml_output;
 
 use crate::models::CheckReport;
 use anyhow::bail;
@@ -18,6 +20,8 @@ pub enum OutputFormat {
     Html,
     Sarif,
     Markdown,
+    Xml,
+    Pdf,
 }
 
 impl std::fmt::Display for OutputFormat {
@@ -30,6 +34,8 @@ impl std::fmt::Display for OutputFormat {
             OutputFormat::Html => "html",
             OutputFormat::Sarif => "sarif",
             OutputFormat::Markdown => "markdown",
+            OutputFormat::Xml => "xml",
+            OutputFormat::Pdf => "pdf",
         };
         write!(f, "{s}")
     }
@@ -45,6 +51,8 @@ impl OutputFormat {
             OutputFormat::Html => "html",
             OutputFormat::Sarif => "sarif.json",
             OutputFormat::Markdown => "md",
+            OutputFormat::Xml => "xml",
+            OutputFormat::Pdf => "pdf",
         }
     }
 }
@@ -61,15 +69,31 @@ impl std::str::FromStr for OutputFormat {
             "html" => Ok(OutputFormat::Html),
             "sarif" => Ok(OutputFormat::Sarif),
             "markdown" | "md" => Ok(OutputFormat::Markdown),
+            "xml" => Ok(OutputFormat::Xml),
+            "pdf" => Ok(OutputFormat::Pdf),
             other => bail!("Unknown output format: {other}"),
         }
     }
+}
+
+#[derive(Default, Clone, Debug)]
+pub struct WriteOptions {
+    pub include_threatscore: bool,
 }
 
 pub fn write_findings(
     findings: &[CheckReport],
     format: OutputFormat,
     path: Option<&str>,
+) -> anyhow::Result<()> {
+    write_findings_with_options(findings, format, path, &WriteOptions::default())
+}
+
+pub fn write_findings_with_options(
+    findings: &[CheckReport],
+    format: OutputFormat,
+    path: Option<&str>,
+    options: &WriteOptions,
 ) -> anyhow::Result<()> {
     match format {
         OutputFormat::Console => {
@@ -82,7 +106,7 @@ pub fn write_findings(
         }
         OutputFormat::JsonOcsf => {
             let dest = path.unwrap_or("findings.ocsf.json");
-            json_ocsf::write_json_ocsf(findings, dest)?;
+            json_ocsf::write_json_ocsf_with_options(findings, dest, options.include_threatscore)?;
             println!("OCSF JSON written to: {dest}");
         }
         OutputFormat::JsonAsff => {
@@ -105,17 +129,35 @@ pub fn write_findings(
             markdown::write_markdown(findings, dest)?;
             println!("Markdown written to: {dest}");
         }
+        OutputFormat::Xml => {
+            let dest = path.unwrap_or("findings.xml");
+            xml_output::write_xml(findings, dest)?;
+            println!("XML written to: {dest}");
+        }
+        OutputFormat::Pdf => {
+            let dest = path.unwrap_or("findings.pdf");
+            pdf_output::write_pdf(findings, dest)?;
+            println!("PDF written to: {dest}");
+        }
     }
     Ok(())
 }
 
-/// Write the same set of findings to multiple destinations at once.
-/// Uses `base` as the filename stem when present, falling back to default names.
 pub fn write_findings_multi(
     findings: &[CheckReport],
     formats: &[OutputFormat],
     base: Option<&str>,
     directory: Option<&str>,
+) -> anyhow::Result<()> {
+    write_findings_multi_with_options(findings, formats, base, directory, &WriteOptions::default())
+}
+
+pub fn write_findings_multi_with_options(
+    findings: &[CheckReport],
+    formats: &[OutputFormat],
+    base: Option<&str>,
+    directory: Option<&str>,
+    options: &WriteOptions,
 ) -> anyhow::Result<()> {
     use std::path::PathBuf;
     if formats.is_empty() {
@@ -138,7 +180,7 @@ pub fn write_findings_multi(
         };
         path.push(filename);
         let path_str = path.to_string_lossy().to_string();
-        write_findings(findings, format.clone(), Some(&path_str))?;
+        write_findings_with_options(findings, format.clone(), Some(&path_str), options)?;
     }
     Ok(())
 }

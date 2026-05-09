@@ -1,0 +1,12 @@
+{
+  "Framework": "Prowler ThreatScore",
+  "Version": "2025",
+  "Provider": "kubernetes",
+  "Requirements": [
+    {"Id": "TS.RBAC.ClusterAdmin", "Description": "Excessive cluster-admin bindings.", "Checks": ["rbac_cluster_admin_bindings", "rbac_no_cluster_admin_default"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 9}]},
+    {"Id": "TS.RBAC.Wildcard", "Description": "Wildcard verbs in Role/ClusterRole.", "Checks": ["rbac_wildcard_verbs"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 8}]},
+    {"Id": "TS.Workloads.Priv", "Description": "Privileged containers.", "Checks": ["workloads_no_privileged_containers", "workloads_no_privilege_escalation"], "Attributes": [{"Pillar": "Container Escape", "Weight": 10}]},
+    {"Id": "TS.Workloads.HostNs", "Description": "Containers sharing host namespaces.", "Checks": ["workloads_no_host_network", "workloads_no_host_pid_namespace"], "Attributes": [{"Pillar": "Container Escape", "Weight": 9}]},
+    {"Id": "TS.Network.Dashboard", "Description": "Kubernetes dashboard exposed.", "Checks": ["network_no_exposed_dashboard"], "Attributes": [{"Pillar": "Network Exposure", "Weight": 9}]}
+  ]
+}

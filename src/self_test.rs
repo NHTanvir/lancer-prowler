@@ -49,8 +49,8 @@ pub fn run_self_test() -> i32 {
     });
 
     // ── Output formats ──────────────────────────────────────────────────────
-    let upstream_formats = vec!["console", "csv", "json-ocsf", "json-asff", "html", "sarif"];
-    let our_formats = vec!["console", "csv", "json-ocsf", "json-asff", "html", "sarif", "markdown"];
+    let upstream_formats = vec!["console", "csv", "json-ocsf", "json-asff", "html", "sarif", "xml"];
+    let our_formats = vec!["console", "csv", "json-ocsf", "json-asff", "html", "sarif", "markdown", "xml", "pdf"];
     let missing_fmt: Vec<&str> = upstream_formats
         .iter()
         .copied()
@@ -72,7 +72,7 @@ pub fn run_self_test() -> i32 {
 
     // ── Round-trip each format with a tiny synthetic finding ───────────────
     let synthetic = synthetic_finding();
-    for fmt_name in &["csv", "json-ocsf", "json-asff", "html", "sarif", "markdown"] {
+    for fmt_name in &["csv", "json-ocsf", "json-asff", "html", "sarif", "markdown", "xml", "pdf"] {
         let format: output::OutputFormat = fmt_name.parse().unwrap();
         let tmp = std::env::temp_dir().join(format!("lancer-prowler-selftest.{}", format.default_extension()));
         let tmp_str = tmp.to_string_lossy().to_string();
@@ -116,6 +116,15 @@ pub fn run_self_test() -> i32 {
         "cloudflare",
         "iac",
         "container-image",
+        "mongodb-atlas",
+        "workspace",
+        "openstack",
+        "vercel",
+        "okta",
+        "nhn",
+        "scaleway",
+        "stackit",
+        "vmware",
     ] {
         checks.push(ParityCheck {
             group: "providers",
@@ -326,6 +335,8 @@ fn our_cli_flag_catalog() -> Vec<&'static str> {
         "--scan-unused-services",
         "--region",
         "--azure-region",
+        "--subscription-id",
+        "--azure-subscription-id",
         "--tenant-id",
         "--client-id",
         "--client-secret",
@@ -336,6 +347,7 @@ fn our_cli_flag_catalog() -> Vec<&'static str> {
         "--credentials-file",
         "--impersonate-service-account",
         "--organization-id",
+        "--project-id",
         "--excluded-project-id",
         "--kubeconfig-file",
         "--context",
@@ -348,6 +360,9 @@ fn our_cli_flag_catalog() -> Vec<&'static str> {
         "--cli",
         "--upload-security-hub",
         "--security-hub-region",
+        "--threatscore",
+        "--custom-compliance",
+        "--custom-compliance-file",
     ]
 }
 

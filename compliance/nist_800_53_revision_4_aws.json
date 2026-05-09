@@ -1,0 +1,13 @@
+{
+  "Framework": "NIST 800-53 Revision 4",
+  "Version": "4",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "AC-2", "Description": "Account Management.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_rotate_access_key_90_days", "iam_user_two_active_access_key"], "Attributes": [{"Family": "Access Control"}]},
+    {"Id": "AC-6", "Description": "Least Privilege.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_aws_attached_policy_no_administrative_privileges", "iam_customer_attached_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Family": "Access Control"}]},
+    {"Id": "AU-2", "Description": "Event Logging.", "Checks": ["cloudtrail_multi_region_enabled", "cloudtrail_cloudwatch_logging_enabled"], "Attributes": [{"Family": "Audit and Accountability"}]},
+    {"Id": "AU-9", "Description": "Protection of Audit Information.", "Checks": ["cloudtrail_log_file_validation_enabled", "cloudtrail_logs_s3_bucket_is_not_publicly_accessible"], "Attributes": [{"Family": "Audit and Accountability"}]},
+    {"Id": "SC-12", "Description": "Cryptographic Key Establishment.", "Checks": ["kms_cmk_rotation_enabled"], "Attributes": [{"Family": "System and Communications Protection"}]},
+    {"Id": "SC-13", "Description": "Cryptographic Protection.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Family": "System and Communications Protection"}]}
+  ]
+}

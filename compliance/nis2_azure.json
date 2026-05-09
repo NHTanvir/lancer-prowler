@@ -1,0 +1,10 @@
+{
+  "Framework": "NIS2 Directive (EU)",
+  "Version": "2023",
+  "Provider": "azure",
+  "Requirements": [
+    {"Id": "Art.21.1.a", "Description": "Risk analysis and information system security policies.", "Checks": ["storage_account_shared_key_access_disabled", "keyvault_rbac_authorization_enabled"], "Attributes": [{"Article": "21", "Paragraph": "1.a"}]},
+    {"Id": "Art.21.1.h", "Description": "Cryptography.", "Checks": ["storage_account_customer_managed_key", "compute_vm_os_disk_encryption_enabled"], "Attributes": [{"Article": "21", "Paragraph": "1.h"}]},
+    {"Id": "Art.21.2.e", "Description": "Security in network and information systems acquisition, development and maintenance.", "Checks": ["keyvault_public_network_access_disabled", "compute_vm_network_security_group"], "Attributes": [{"Article": "21", "Paragraph": "2.e"}]}
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "Framework": "NIST 800-171 Revision 2",
+  "Version": "2",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "3.1.1", "Description": "Limit system access to authorized users.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_policy_attached_only_to_group_or_roles"], "Attributes": [{"Family": "Access Control"}]},
+    {"Id": "3.1.5", "Description": "Employ principle of least privilege.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Family": "Access Control"}]},
+    {"Id": "3.3.1", "Description": "Create and retain audit logs.", "Checks": ["cloudtrail_multi_region_enabled", "cloudtrail_cloudwatch_logging_enabled"], "Attributes": [{"Family": "Audit and Accountability"}]},
+    {"Id": "3.5.3", "Description": "Use multifactor authentication.", "Checks": ["iam_root_mfa_enabled", "iam_root_hardware_mfa_enabled", "iam_user_mfa_enabled_console_access"], "Attributes": [{"Family": "Identification and Authentication"}]},
+    {"Id": "3.13.8", "Description": "Implement cryptographic mechanisms to prevent unauthorized disclosure.", "Checks": ["s3_bucket_default_encryption", "s3_bucket_secure_transport_policy", "ec2_ebs_default_encryption"], "Attributes": [{"Family": "System and Communications Protection"}]}
+  ]
+}

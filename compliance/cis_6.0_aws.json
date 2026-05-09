@@ -1,0 +1,17 @@
+{
+  "Framework": "CIS AWS Foundations Benchmark",
+  "Version": "6.0.0",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "1.4", "Description": "No root access key.", "Checks": ["iam_no_root_access_key"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.5", "Description": "Root MFA.", "Checks": ["iam_root_mfa_enabled"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.10", "Description": "MFA for console users.", "Checks": ["iam_user_mfa_enabled_console_access"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.20", "Description": "Privilege escalation paths.", "Checks": ["iam_policy_allows_privilege_escalation"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "2.1.1", "Description": "S3 default encryption.", "Checks": ["s3_bucket_default_encryption"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "3.1", "Description": "Multi-region CloudTrail.", "Checks": ["cloudtrail_multi_region_enabled"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "4.1", "Description": "GuardDuty enabled.", "Checks": ["guardduty_is_enabled"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "4.2", "Description": "Security Hub enabled.", "Checks": ["securityhub_enabled"], "Attributes": [{"Profile": "Level 2"}]},
+    {"Id": "5.1.1", "Description": "EBS default encryption.", "Checks": ["ec2_ebs_default_encryption"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "5.2", "Description": "SG: block 0.0.0.0/0 to 22 / 3389.", "Checks": ["ec2_securitygroup_allow_ingress_from_internet_to_port_22", "ec2_securitygroup_allow_ingress_from_internet_to_port_3389"], "Attributes": [{"Profile": "Level 1"}]}
+  ]
+}

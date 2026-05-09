@@ -1,0 +1,15 @@
+{
+  "Framework": "Prowler ThreatScore",
+  "Version": "2025",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "TS.IAM.PrivEsc", "Description": "Privilege escalation paths in IAM policies.", "Checks": ["iam_policy_allows_privilege_escalation"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 9}]},
+    {"Id": "TS.IAM.RootKey", "Description": "Active root access key — high blast radius.", "Checks": ["iam_no_root_access_key"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 10}]},
+    {"Id": "TS.S3.Public", "Description": "Public S3 buckets.", "Checks": ["s3_bucket_public_access", "s3_account_level_public_access_blocks"], "Attributes": [{"Pillar": "Data Exposure", "Weight": 9}]},
+    {"Id": "TS.EC2.SG_OpenSSH", "Description": "SSH open to internet.", "Checks": ["ec2_securitygroup_allow_ingress_from_internet_to_port_22"], "Attributes": [{"Pillar": "Network Exposure", "Weight": 8}]},
+    {"Id": "TS.EC2.SG_OpenRDP", "Description": "RDP open to internet.", "Checks": ["ec2_securitygroup_allow_ingress_from_internet_to_port_3389"], "Attributes": [{"Pillar": "Network Exposure", "Weight": 8}]},
+    {"Id": "TS.Audit.NoTrail", "Description": "No multi-region CloudTrail — forensic blind spot.", "Checks": ["cloudtrail_multi_region_enabled"], "Attributes": [{"Pillar": "Visibility", "Weight": 7}]},
+    {"Id": "TS.Threat.PrivEsc", "Description": "Observed privilege escalation in CloudTrail.", "Checks": ["cloudtrail_threat_detection_privilege_escalation"], "Attributes": [{"Pillar": "Threat Activity", "Weight": 10}]},
+    {"Id": "TS.Threat.Enumeration", "Description": "Observed enumeration in CloudTrail.", "Checks": ["cloudtrail_threat_detection_enumeration"], "Attributes": [{"Pillar": "Threat Activity", "Weight": 7}]}
+  ]
+}

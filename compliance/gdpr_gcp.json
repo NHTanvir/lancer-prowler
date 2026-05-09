@@ -1,0 +1,10 @@
+{
+  "Framework": "General Data Protection Regulation (EU)",
+  "Version": "2016/679",
+  "Provider": "gcp",
+  "Requirements": [
+    {"Id": "Art.32.1.a", "Description": "Encryption of personal data.", "Checks": ["storage_bucket_kms_encryption"], "Attributes": [{"Article": "32", "Paragraph": "1.a"}]},
+    {"Id": "Art.32.1.b", "Description": "Ongoing confidentiality, integrity, availability and resilience.", "Checks": ["storage_bucket_versioning_enabled", "storage_bucket_retention_policy"], "Attributes": [{"Article": "32", "Paragraph": "1.b"}]},
+    {"Id": "Art.25", "Description": "Data protection by design and by default.", "Checks": ["storage_bucket_uniform_bucket_level_access", "storage_bucket_not_publicly_accessible"], "Attributes": [{"Article": "25"}]}
+  ]
+}

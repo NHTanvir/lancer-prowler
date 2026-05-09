@@ -1,0 +1,11 @@
+{
+  "Framework": "Reserve Bank of India — Cyber Security Framework",
+  "Version": "2024",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "Annex-I.4", "Description": "Network management and security.", "Checks": ["ec2_securitygroup_allow_ingress_from_internet_to_any_port", "vpc_flow_logs_enabled"], "Attributes": [{"Source": "RBI Cyber Security Framework"}]},
+    {"Id": "Annex-I.7", "Description": "User access controls (MFA).", "Checks": ["iam_user_mfa_enabled_console_access", "iam_root_mfa_enabled"], "Attributes": [{"Source": "RBI Cyber Security Framework"}]},
+    {"Id": "Annex-I.10", "Description": "Cryptography for sensitive data.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Source": "RBI Cyber Security Framework"}]},
+    {"Id": "Annex-I.13", "Description": "Audit logs and event monitoring.", "Checks": ["cloudtrail_multi_region_enabled", "guardduty_is_enabled"], "Attributes": [{"Source": "RBI Cyber Security Framework"}]}
+  ]
+}

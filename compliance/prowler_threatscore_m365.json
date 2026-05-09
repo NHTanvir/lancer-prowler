@@ -1,0 +1,11 @@
+{
+  "Framework": "Prowler ThreatScore",
+  "Version": "2025",
+  "Provider": "m365",
+  "Requirements": [
+    {"Id": "TS.Entra.AdminMfa", "Description": "MFA missing for admin roles.", "Checks": ["entra_mfa_required_for_admins"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 10}]},
+    {"Id": "TS.Defender.SafeLinks", "Description": "Safe Links disabled in Defender.", "Checks": ["defender_safe_links_enabled"], "Attributes": [{"Pillar": "Threat Defense", "Weight": 8}]},
+    {"Id": "TS.Exchange.Dkim", "Description": "DKIM not enabled.", "Checks": ["exchange_dkim_enabled"], "Attributes": [{"Pillar": "Email Security", "Weight": 7}]},
+    {"Id": "TS.Sharing.OneDrive", "Description": "External OneDrive sharing unrestricted.", "Checks": ["onedrive_external_sharing_restricted"], "Attributes": [{"Pillar": "Data Exposure", "Weight": 8}]}
+  ]
+}

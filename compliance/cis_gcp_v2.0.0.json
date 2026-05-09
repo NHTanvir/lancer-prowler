@@ -1,0 +1,12 @@
+{
+  "Framework": "CIS GCP Foundations Benchmark",
+  "Version": "2.0.0",
+  "Provider": "gcp",
+  "Requirements": [
+    {"Id": "1.5", "Description": "Ensure that Service Account has no Admin privileges.", "Checks": ["iam_sa_no_admin_privileges", "iam_no_service_account_with_admin_privileges"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.6", "Description": "Ensure that IAM users do not use SA user-managed keys.", "Checks": ["iam_service_account_key_not_user_managed"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "5.1", "Description": "Ensure that Cloud Storage buckets have uniform bucket-level access enabled.", "Checks": ["storage_bucket_uniform_bucket_level_access"], "Attributes": [{"Profile": "Level 2"}]},
+    {"Id": "5.2", "Description": "Ensure Cloud Storage buckets are not publicly accessible.", "Checks": ["storage_bucket_not_publicly_accessible"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "4.9", "Description": "Compute instances no public IPs.", "Checks": ["compute_instance_no_public_ip"], "Attributes": [{"Profile": "Level 2"}]}
+  ]
+}

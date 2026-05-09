@@ -1,0 +1,12 @@
+{
+  "Framework": "AWS Well-Architected Framework — Security Pillar",
+  "Version": "2024",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "SEC01", "Description": "Securely operate your workload.", "Checks": ["iam_avoid_root_usage", "config_recorder_all_regions_enabled"], "Attributes": [{"Pillar": "Security"}]},
+    {"Id": "SEC02", "Description": "Identity and access management.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Pillar": "Security"}]},
+    {"Id": "SEC04", "Description": "Detection.", "Checks": ["cloudtrail_multi_region_enabled", "guardduty_is_enabled", "vpc_flow_logs_enabled"], "Attributes": [{"Pillar": "Security"}]},
+    {"Id": "SEC07", "Description": "Data protection at rest.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Pillar": "Security"}]},
+    {"Id": "SEC09", "Description": "Data protection in transit.", "Checks": ["s3_bucket_secure_transport_policy", "elbv2_listener_uses_secure_ssl_policy"], "Attributes": [{"Pillar": "Security"}]}
+  ]
+}

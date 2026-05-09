@@ -1,0 +1,10 @@
+{
+  "Framework": "General Data Protection Regulation (EU)",
+  "Version": "2016/679",
+  "Provider": "azure",
+  "Requirements": [
+    {"Id": "Art.32.1.a", "Description": "Encryption of personal data.", "Checks": ["storage_account_customer_managed_key", "storage_account_infrastructure_encryption_enabled", "compute_vm_os_disk_encryption_enabled", "compute_vm_data_disks_encrypted"], "Attributes": [{"Article": "32", "Paragraph": "1.a"}]},
+    {"Id": "Art.32.1.b", "Description": "Ongoing confidentiality, integrity, availability and resilience.", "Checks": ["keyvault_soft_delete_enabled", "keyvault_purge_protection_enabled"], "Attributes": [{"Article": "32", "Paragraph": "1.b"}]},
+    {"Id": "Art.25", "Description": "Data protection by design and by default.", "Checks": ["storage_account_default_network_access_rule_deny", "keyvault_public_network_access_disabled"], "Attributes": [{"Article": "25"}]}
+  ]
+}

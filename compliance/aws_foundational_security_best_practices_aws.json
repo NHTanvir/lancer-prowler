@@ -1,0 +1,19 @@
+{
+  "Framework": "AWS Foundational Security Best Practices",
+  "Version": "1.0.0",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "IAM.1", "Description": "IAM policies should not allow full \"*\" administrative privileges.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_aws_attached_policy_no_administrative_privileges"], "Attributes": [{"Service": "IAM"}]},
+    {"Id": "IAM.4", "Description": "IAM root user access key should not exist.", "Checks": ["iam_no_root_access_key"], "Attributes": [{"Service": "IAM"}]},
+    {"Id": "IAM.5", "Description": "MFA should be enabled for all IAM users with console password.", "Checks": ["iam_user_mfa_enabled_console_access"], "Attributes": [{"Service": "IAM"}]},
+    {"Id": "S3.1", "Description": "S3 Block Public Access at account level.", "Checks": ["s3_account_level_public_access_blocks"], "Attributes": [{"Service": "S3"}]},
+    {"Id": "S3.4", "Description": "S3 default encryption.", "Checks": ["s3_bucket_default_encryption"], "Attributes": [{"Service": "S3"}]},
+    {"Id": "EC2.2", "Description": "VPC default security group should not allow inbound and outbound traffic.", "Checks": ["ec2_securitygroup_default_restrict_traffic"], "Attributes": [{"Service": "EC2"}]},
+    {"Id": "EC2.8", "Description": "EC2 instances should use IMDSv2.", "Checks": ["ec2_instance_imdsv2_enabled"], "Attributes": [{"Service": "EC2"}]},
+    {"Id": "CloudTrail.1", "Description": "CloudTrail should be enabled and configured with at least one multi-region trail.", "Checks": ["cloudtrail_multi_region_enabled"], "Attributes": [{"Service": "CloudTrail"}]},
+    {"Id": "GuardDuty.1", "Description": "GuardDuty should be enabled.", "Checks": ["guardduty_is_enabled"], "Attributes": [{"Service": "GuardDuty"}]},
+    {"Id": "Lambda.1", "Description": "Lambda functions should prohibit public access.", "Checks": ["lambda_function_not_publicly_accessible", "lambda_function_url_public"], "Attributes": [{"Service": "Lambda"}]},
+    {"Id": "RDS.2", "Description": "RDS DB instances should prohibit public access.", "Checks": ["rds_instance_public_access"], "Attributes": [{"Service": "RDS"}]},
+    {"Id": "RDS.3", "Description": "RDS DB instances should have encryption at rest enabled.", "Checks": ["rds_instance_encrypted", "rds_instance_storage_encrypted"], "Attributes": [{"Service": "RDS"}]}
+  ]
+}

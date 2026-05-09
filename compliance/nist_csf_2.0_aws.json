@@ -1,0 +1,14 @@
+{
+  "Framework": "NIST Cybersecurity Framework",
+  "Version": "2.0",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "GV.OC-01", "Description": "Organizational context understood.", "Checks": ["iam_avoid_root_usage"], "Attributes": [{"Function": "Govern"}]},
+    {"Id": "ID.AM-01", "Description": "Inventories of hardware managed.", "Checks": ["config_recorder_all_regions_enabled"], "Attributes": [{"Function": "Identify"}]},
+    {"Id": "PR.AA-01", "Description": "Identities and credentials managed.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_rotate_access_key_90_days"], "Attributes": [{"Function": "Protect"}]},
+    {"Id": "PR.AA-05", "Description": "Access permissions managed.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Function": "Protect"}]},
+    {"Id": "PR.DS-01", "Description": "Data-at-rest protected.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Function": "Protect"}]},
+    {"Id": "DE.CM-01", "Description": "Networks and network services monitored.", "Checks": ["vpc_flow_logs_enabled", "guardduty_is_enabled"], "Attributes": [{"Function": "Detect"}]},
+    {"Id": "RS.AN-03", "Description": "Forensic analysis performed.", "Checks": ["cloudtrail_threat_detection_privilege_escalation", "cloudtrail_threat_detection_enumeration"], "Attributes": [{"Function": "Respond"}]}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "Framework": "SecNumCloud (ANSSI)",
+  "Version": "3.2",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "9.1", "Description": "Politique de contrôle d'accès.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_attached_only_to_group_or_roles"], "Attributes": [{"Section": "Contrôle d'accès"}]},
+    {"Id": "9.4", "Description": "Authentification forte (MFA).", "Checks": ["iam_user_mfa_enabled_console_access", "iam_root_mfa_enabled"], "Attributes": [{"Section": "Contrôle d'accès"}]},
+    {"Id": "10.1", "Description": "Politique cryptographique.", "Checks": ["s3_bucket_default_encryption", "kms_cmk_rotation_enabled"], "Attributes": [{"Section": "Cryptographie"}]},
+    {"Id": "12.4", "Description": "Journalisation.", "Checks": ["cloudtrail_multi_region_enabled"], "Attributes": [{"Section": "Sécurité"}]}
+  ]
+}

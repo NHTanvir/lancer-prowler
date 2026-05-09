@@ -1,0 +1,12 @@
+{
+  "Framework": "NIST 800-53 Revision 5",
+  "Version": "5.0",
+  "Provider": "gcp",
+  "Requirements": [
+    {"Id": "AC-2", "Description": "Account Management.", "Checks": ["iam_no_public_access", "iam_no_service_account_with_admin_privileges"], "Attributes": [{"Family": "Access Control"}]},
+    {"Id": "AC-6", "Description": "Least Privilege.", "Checks": ["iam_avoid_primitive_roles", "iam_sa_no_admin_privileges"], "Attributes": [{"Family": "Access Control"}]},
+    {"Id": "AU-2", "Description": "Event Logging.", "Checks": ["storage_bucket_logging_enabled"], "Attributes": [{"Family": "Audit and Accountability"}]},
+    {"Id": "SC-13", "Description": "Cryptographic Protection.", "Checks": ["storage_bucket_kms_encryption"], "Attributes": [{"Family": "System and Communications Protection"}]},
+    {"Id": "SC-7", "Description": "Boundary Protection.", "Checks": ["compute_instance_no_public_ip", "compute_firewall_rule_no_ingress_0_0_0_0_22"], "Attributes": [{"Family": "System and Communications Protection"}]}
+  ]
+}

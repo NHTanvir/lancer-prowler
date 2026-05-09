@@ -1,0 +1,12 @@
+{
+  "Framework": "MITRE ATT&CK for Containers",
+  "Version": "v14",
+  "Provider": "kubernetes",
+  "Requirements": [
+    {"Id": "T1610", "Description": "Deploy Container.", "Checks": ["workloads_no_privileged_containers"], "Attributes": [{"Tactic": "Execution"}]},
+    {"Id": "T1611", "Description": "Escape to Host.", "Checks": ["workloads_no_host_network", "workloads_no_host_pid_namespace", "workloads_no_privilege_escalation"], "Attributes": [{"Tactic": "Privilege Escalation"}]},
+    {"Id": "T1525", "Description": "Implant Internal Image.", "Checks": ["workloads_no_root_capabilities"], "Attributes": [{"Tactic": "Persistence"}]},
+    {"Id": "T1078.005", "Description": "Valid Accounts: Cloud Accounts (RBAC).", "Checks": ["rbac_no_anonymous_access", "rbac_service_account_least_privilege"], "Attributes": [{"Tactic": "Initial Access"}]},
+    {"Id": "T1133", "Description": "External Remote Services — exposed dashboard.", "Checks": ["network_no_exposed_dashboard"], "Attributes": [{"Tactic": "Initial Access"}]}
+  ]
+}

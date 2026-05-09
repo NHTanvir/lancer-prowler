@@ -1,0 +1,10 @@
+{
+  "Framework": "NIS2 Directive (EU)",
+  "Version": "2023",
+  "Provider": "gcp",
+  "Requirements": [
+    {"Id": "Art.21.1.a", "Description": "Risk analysis and information system security policies.", "Checks": ["iam_no_public_access", "iam_avoid_primitive_roles"], "Attributes": [{"Article": "21", "Paragraph": "1.a"}]},
+    {"Id": "Art.21.1.h", "Description": "Cryptography.", "Checks": ["storage_bucket_kms_encryption"], "Attributes": [{"Article": "21", "Paragraph": "1.h"}]},
+    {"Id": "Art.21.2.e", "Description": "Security in network and information systems acquisition, development and maintenance.", "Checks": ["compute_instance_no_public_ip", "compute_firewall_rule_no_ingress_0_0_0_0_22", "compute_firewall_rule_no_ingress_0_0_0_0_3389"], "Attributes": [{"Article": "21", "Paragraph": "2.e"}]}
+  ]
+}

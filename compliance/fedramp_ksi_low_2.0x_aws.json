@@ -1,0 +1,10 @@
+{
+  "Framework": "FedRAMP KSI (Low) — 20x",
+  "Version": "20x",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "KSI.CMT", "Description": "Continuous Monitoring.", "Checks": ["config_recorder_all_regions_enabled", "cloudtrail_multi_region_enabled", "guardduty_is_enabled"], "Attributes": [{"KSI": "CMT"}]},
+    {"Id": "KSI.IAM", "Description": "Identity and Access Management.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_inline_policy_no_administrative_privileges"], "Attributes": [{"KSI": "IAM"}]},
+    {"Id": "KSI.ENC", "Description": "Encryption.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted", "kms_cmk_rotation_enabled"], "Attributes": [{"KSI": "ENC"}]}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "Framework": "AWS Well-Architected Framework — Reliability Pillar",
+  "Version": "2024",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "REL01", "Description": "Manage service limits and quotas.", "Checks": ["config_recorder_all_regions_enabled"], "Attributes": [{"Pillar": "Reliability"}]},
+    {"Id": "REL09", "Description": "Back up data.", "Checks": ["rds_instance_backup_enabled", "s3_bucket_object_versioning"], "Attributes": [{"Pillar": "Reliability"}]},
+    {"Id": "REL10", "Description": "Use fault isolation to protect your workload.", "Checks": ["rds_instance_multi_az"], "Attributes": [{"Pillar": "Reliability"}]},
+    {"Id": "REL11", "Description": "Design your workload to withstand component failures.", "Checks": ["elbv2_deletion_protection_enabled"], "Attributes": [{"Pillar": "Reliability"}]}
+  ]
+}

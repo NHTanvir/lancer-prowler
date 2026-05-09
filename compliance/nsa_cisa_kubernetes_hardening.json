@@ -1,0 +1,13 @@
+{
+  "Framework": "NSA-CISA Kubernetes Hardening Guidance",
+  "Version": "v1.2",
+  "Provider": "kubernetes",
+  "Requirements": [
+    {"Id": "Pod-1", "Description": "Use Pod Security Standards / Admission to restrict privileged pods.", "Checks": ["workloads_no_privileged_containers", "workloads_no_host_pid_namespace", "workloads_no_host_network"], "Attributes": [{"Section": "Pod Security"}]},
+    {"Id": "Pod-2", "Description": "Run containers as non-root.", "Checks": ["workloads_run_as_non_root"], "Attributes": [{"Section": "Pod Security"}]},
+    {"Id": "Pod-3", "Description": "Read-only root filesystem.", "Checks": ["workloads_read_only_root_filesystem"], "Attributes": [{"Section": "Pod Security"}]},
+    {"Id": "Net-1", "Description": "NetworkPolicies for default-deny.", "Checks": ["network_default_deny_policy", "network_namespace_has_network_policy"], "Attributes": [{"Section": "Network Separation"}]},
+    {"Id": "Auth-1", "Description": "Disable anonymous access.", "Checks": ["rbac_no_anonymous_access"], "Attributes": [{"Section": "Authentication"}]},
+    {"Id": "Auth-2", "Description": "Restrict cluster-admin bindings.", "Checks": ["rbac_cluster_admin_bindings", "rbac_no_cluster_admin_default"], "Attributes": [{"Section": "Authorization"}]}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "Framework": "BSI Cloud Computing Compliance Criteria Catalogue (C5)",
+  "Version": "2020",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "IDM-01", "Description": "Policies and instructions for identity and access management.", "Checks": ["iam_inline_policy_no_administrative_privileges"], "Attributes": [{"Domain": "Identity & Access Management"}]},
+    {"Id": "IDM-09", "Description": "Multi-factor authentication.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_root_mfa_enabled"], "Attributes": [{"Domain": "Identity & Access Management"}]},
+    {"Id": "CRY-02", "Description": "Cryptographic protection of data at rest.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption"], "Attributes": [{"Domain": "Cryptography & Key Management"}]},
+    {"Id": "OPS-12", "Description": "Logging of cloud-platform events.", "Checks": ["cloudtrail_multi_region_enabled"], "Attributes": [{"Domain": "Operations"}]}
+  ]
+}

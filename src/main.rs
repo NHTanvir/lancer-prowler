@@ -448,6 +448,30 @@ async fn run_scan_command(ctx: &ScanContext, mut args: cli::ScanArgs) -> anyhow:
         None
     };
 
+    // ── custom compliance frameworks (--custom-compliance) ──────────────────
+    let custom_frameworks: Vec<compliance::ComplianceFramework> = args
+        .custom_compliance_file
+        .iter()
+        .filter_map(|p| match compliance::load_framework(p) {
+            Ok(fw) => Some(fw),
+            Err(e) => {
+                tracing::warn!("Failed to load custom compliance file {p}: {e:#}");
+                None
+            }
+        })
+        .collect();
+    if !custom_frameworks.is_empty() && !ctx.quiet {
+        println!(
+            "  [compliance] Loaded {} custom framework(s): {}",
+            custom_frameworks.len(),
+            custom_frameworks
+                .iter()
+                .map(|f| f.framework.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+    }
+
     let formats = resolve_output_formats(&args);
     let output_base = resolve_output_filename(&args);
 
@@ -493,6 +517,51 @@ async fn run_scan_command(ctx: &ScanContext, mut args: cli::ScanArgs) -> anyhow:
                     .unwrap_or_else(|_| "alpine:latest".to_string()),
             ),
         ),
+        ProviderArg::MongodbAtlas => providers::mongodb_atlas::run_stub_scan(
+            &providers::mongodb_atlas::MongoDbAtlasProvider::new_stub(
+                std::env::var("MONGODB_ATLAS_ORG").unwrap_or_else(|_| "unknown-org".to_string()),
+            ),
+        ),
+        ProviderArg::Workspace => providers::workspace::run_stub_scan(
+            &providers::workspace::WorkspaceProvider::new_stub(
+                std::env::var("WORKSPACE_CUSTOMER").unwrap_or_else(|_| "unknown".to_string()),
+            ),
+        ),
+        ProviderArg::Openstack => providers::openstack::run_stub_scan(
+            &providers::openstack::OpenStackProvider::new_stub(
+                std::env::var("OS_PROJECT_ID").unwrap_or_else(|_| "unknown".to_string()),
+            ),
+        ),
+        ProviderArg::Vercel => providers::vercel::run_stub_scan(
+            &providers::vercel::VercelProvider::new_stub(
+                std::env::var("VERCEL_TEAM_ID").unwrap_or_else(|_| "unknown".to_string()),
+            ),
+        ),
+        ProviderArg::Okta => providers::okta::run_stub_scan(
+            &providers::okta::OktaProvider::new_stub(
+                std::env::var("OKTA_ORG_URL").unwrap_or_else(|_| "unknown.okta.com".to_string()),
+            ),
+        ),
+        ProviderArg::Nhn => providers::nhn::run_stub_scan(
+            &providers::nhn::NhnProvider::new_stub(
+                std::env::var("NHN_PROJECT_ID").unwrap_or_else(|_| "unknown".to_string()),
+            ),
+        ),
+        ProviderArg::Scaleway => providers::scaleway::run_stub_scan(
+            &providers::scaleway::ScalewayProvider::new_stub(
+                std::env::var("SCW_ORG_ID").unwrap_or_else(|_| "unknown".to_string()),
+            ),
+        ),
+        ProviderArg::Stackit => providers::stackit::run_stub_scan(
+            &providers::stackit::StackitProvider::new_stub(
+                std::env::var("STACKIT_PROJECT_ID").unwrap_or_else(|_| "unknown".to_string()),
+            ),
+        ),
+        ProviderArg::Vmware => providers::vmware::run_stub_scan(
+            &providers::vmware::VmwareProvider::new_stub(
+                std::env::var("VMWARE_SDDC_ID").unwrap_or_else(|_| "unknown".to_string()),
+            ),
+        ),
     };
 
     // ── filters ──────────────────────────────────────────────────────────────
@@ -534,14 +603,18 @@ async fn run_scan_command(ctx: &ScanContext, mut args: cli::ScanArgs) -> anyhow:
     if args.tui {
         tui::TuiApp::run(findings.clone()).context("TUI dashboard error")?;
     }
+    let write_opts = output::WriteOptions {
+        include_threatscore: args.threatscore,
+    };
     if formats.len() == 1 && output_base.is_none() && args.output_directory.is_none() {
-        write_findings(&findings, formats[0].clone(), None)?;
+        output::write_findings_with_options(&findings, formats[0].clone(), None, &write_opts)?;
     } else {
-        write_findings_multi(
+        output::write_findings_multi_with_options(
             &findings,
             &formats,
             output_base.as_deref(),
             args.output_directory.as_deref(),
+            &write_opts,
         )?;
     }
 
@@ -803,6 +876,15 @@ fn all_known_checks() -> Vec<models::CheckMetadata> {
     metas.extend(providers::cloudflare::sample_checks());
     metas.extend(providers::iac::sample_checks());
     metas.extend(providers::container_image::sample_checks());
+    metas.extend(providers::mongodb_atlas::sample_checks());
+    metas.extend(providers::workspace::sample_checks());
+    metas.extend(providers::openstack::sample_checks());
+    metas.extend(providers::vercel::sample_checks());
+    metas.extend(providers::okta::sample_checks());
+    metas.extend(providers::nhn::sample_checks());
+    metas.extend(providers::scaleway::sample_checks());
+    metas.extend(providers::stackit::sample_checks());
+    metas.extend(providers::vmware::sample_checks());
     metas
 }
 
@@ -854,6 +936,15 @@ fn list_services(args: cli::ListServicesArgs) {
         ("cloudflare", providers::cloudflare::SERVICES.to_vec()),
         ("iac", providers::iac::FILE_TYPES.to_vec()),
         ("container-image", vec!["vulnerability", "secrets", "config", "malware"]),
+        ("mongodb-atlas", providers::mongodb_atlas::SERVICES.to_vec()),
+        ("workspace", providers::workspace::SERVICES.to_vec()),
+        ("openstack", providers::openstack::SERVICES.to_vec()),
+        ("vercel", providers::vercel::SERVICES.to_vec()),
+        ("okta", providers::okta::SERVICES.to_vec()),
+        ("nhn", providers::nhn::SERVICES.to_vec()),
+        ("scaleway", providers::scaleway::SERVICES.to_vec()),
+        ("stackit", providers::stackit::SERVICES.to_vec()),
+        ("vmware", providers::vmware::SERVICES.to_vec()),
     ]
     .into_iter()
     .collect();

@@ -1,0 +1,13 @@
+{
+  "Framework": "SOC 2",
+  "Version": "2017 Trust Services Criteria",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "CC6.1", "Description": "Logical access controls implemented.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation", "iam_user_mfa_enabled_console_access"], "Attributes": [{"Category": "Common Criteria"}]},
+    {"Id": "CC6.6", "Description": "Logical access security measures protect against threats from outside the system.", "Checks": ["ec2_securitygroup_allow_ingress_from_internet_to_any_port", "s3_account_level_public_access_blocks"], "Attributes": [{"Category": "Common Criteria"}]},
+    {"Id": "CC6.7", "Description": "Transmission of data is encrypted.", "Checks": ["s3_bucket_secure_transport_policy", "elbv2_listener_uses_secure_ssl_policy"], "Attributes": [{"Category": "Common Criteria"}]},
+    {"Id": "CC6.8", "Description": "Implements controls to prevent malicious software.", "Checks": ["guardduty_is_enabled", "securityhub_enabled"], "Attributes": [{"Category": "Common Criteria"}]},
+    {"Id": "CC7.2", "Description": "Detects security events.", "Checks": ["cloudtrail_multi_region_enabled", "vpc_flow_logs_enabled", "cloudtrail_threat_detection_privilege_escalation"], "Attributes": [{"Category": "Common Criteria"}]},
+    {"Id": "A1.2", "Description": "Authorizes, designs, develops, implements, operates, monitors backup processes.", "Checks": ["rds_instance_backup_enabled", "s3_bucket_object_versioning"], "Attributes": [{"Category": "Availability"}]}
+  ]
+}

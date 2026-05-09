@@ -1,0 +1,13 @@
+{
+  "Framework": "PCI DSS",
+  "Version": "3.2.1",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "1.2", "Description": "Restrict connections between untrusted networks.", "Checks": ["ec2_securitygroup_allow_ingress_from_internet_to_any_port", "ec2_securitygroup_allow_ingress_from_internet_to_port_22", "ec2_securitygroup_allow_ingress_from_internet_to_port_3389"], "Attributes": [{"Section": "Requirement 1"}]},
+    {"Id": "3.4", "Description": "Render PAN unreadable wherever stored.", "Checks": ["s3_bucket_default_encryption", "s3_bucket_kms_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Section": "Requirement 3"}]},
+    {"Id": "4.1", "Description": "Strong cryptography in transit.", "Checks": ["s3_bucket_secure_transport_policy", "elbv2_listener_uses_secure_ssl_policy"], "Attributes": [{"Section": "Requirement 4"}]},
+    {"Id": "7.1", "Description": "Restrict access by business need to know.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Section": "Requirement 7"}]},
+    {"Id": "8.3", "Description": "MFA required.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_root_mfa_enabled"], "Attributes": [{"Section": "Requirement 8"}]},
+    {"Id": "10.2", "Description": "Implement audit trails.", "Checks": ["cloudtrail_multi_region_enabled", "cloudtrail_cloudwatch_logging_enabled"], "Attributes": [{"Section": "Requirement 10"}]}
+  ]
+}

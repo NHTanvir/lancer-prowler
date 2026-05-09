@@ -1,0 +1,19 @@
+{
+  "Framework": "CIS AWS Foundations Benchmark",
+  "Version": "1.4.0",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "1.4", "Description": "Ensure no root user account access key exists.", "Checks": ["iam_no_root_access_key"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.5", "Description": "Ensure MFA is enabled for the root user account.", "Checks": ["iam_root_mfa_enabled"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.6", "Description": "Ensure hardware MFA is enabled for the root user account.", "Checks": ["iam_root_hardware_mfa_enabled"], "Attributes": [{"Profile": "Level 2"}]},
+    {"Id": "1.7", "Description": "Eliminate use of root user for administrative tasks.", "Checks": ["iam_avoid_root_usage"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.8", "Description": "Password policy length >= 14.", "Checks": ["iam_password_policy_minimum_length_14"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "1.9", "Description": "Password reuse prevention >= 24.", "Checks": ["iam_password_policy_reuse_24"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "2.1.1", "Description": "S3 default encryption.", "Checks": ["s3_bucket_default_encryption"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "2.1.5.1", "Description": "S3 bucket public-access block at account level.", "Checks": ["s3_account_level_public_access_blocks"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "3.1", "Description": "CloudTrail enabled in all regions.", "Checks": ["cloudtrail_multi_region_enabled"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "3.2", "Description": "CloudTrail log file integrity validation.", "Checks": ["cloudtrail_log_file_validation_enabled"], "Attributes": [{"Profile": "Level 2"}]},
+    {"Id": "3.7", "Description": "CloudTrail logs encrypted with KMS.", "Checks": ["cloudtrail_kms_encryption_enabled"], "Attributes": [{"Profile": "Level 2"}]},
+    {"Id": "3.8", "Description": "KMS CMK rotation enabled.", "Checks": ["kms_cmk_rotation_enabled"], "Attributes": [{"Profile": "Level 2"}]}
+  ]
+}

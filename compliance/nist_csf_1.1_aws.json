@@ -1,0 +1,12 @@
+{
+  "Framework": "NIST Cybersecurity Framework",
+  "Version": "1.1",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "ID.AM-1", "Description": "Physical devices and systems inventoried.", "Checks": ["config_recorder_all_regions_enabled"], "Attributes": [{"Function": "Identify"}]},
+    {"Id": "PR.AC-1", "Description": "Identities and credentials are issued, managed, verified, revoked, and audited.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_rotate_access_key_90_days"], "Attributes": [{"Function": "Protect"}]},
+    {"Id": "PR.AC-4", "Description": "Access permissions and authorizations are managed.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Function": "Protect"}]},
+    {"Id": "PR.DS-1", "Description": "Data-at-rest is protected.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Function": "Protect"}]},
+    {"Id": "DE.CM-1", "Description": "Network monitored.", "Checks": ["vpc_flow_logs_enabled", "guardduty_is_enabled"], "Attributes": [{"Function": "Detect"}]}
+  ]
+}

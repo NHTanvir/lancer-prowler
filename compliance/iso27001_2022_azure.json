@@ -1,0 +1,11 @@
+{
+  "Framework": "ISO/IEC 27001",
+  "Version": "2022",
+  "Provider": "azure",
+  "Requirements": [
+    {"Id": "A.5.15", "Description": "Access control.", "Checks": ["storage_account_shared_key_access_disabled", "keyvault_rbac_authorization_enabled"], "Attributes": [{"Annex": "A.5"}]},
+    {"Id": "A.8.5", "Description": "Secure authentication.", "Checks": ["keyvault_rbac_authorization_enabled"], "Attributes": [{"Annex": "A.8"}]},
+    {"Id": "A.8.16", "Description": "Monitoring activities.", "Checks": ["keyvault_logging_enabled"], "Attributes": [{"Annex": "A.8"}]},
+    {"Id": "A.8.24", "Description": "Use of cryptography.", "Checks": ["storage_account_customer_managed_key", "storage_account_infrastructure_encryption_enabled", "compute_vm_os_disk_encryption_enabled"], "Attributes": [{"Annex": "A.8"}]}
+  ]
+}

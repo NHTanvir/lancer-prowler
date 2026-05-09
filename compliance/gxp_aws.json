@@ -1,0 +1,12 @@
+{
+  "Framework": "GxP (Good x Practice — Pharma/Life Sciences)",
+  "Version": "21 CFR Part 11 + EU Annex 11",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "11.10(a)", "Description": "Validation of systems.", "Checks": ["config_recorder_all_regions_enabled"], "Attributes": [{"Section": "21 CFR Part 11"}]},
+    {"Id": "11.10(d)", "Description": "Limit access to authorized individuals.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Section": "21 CFR Part 11"}]},
+    {"Id": "11.10(e)", "Description": "Use of secure, computer-generated audit trails.", "Checks": ["cloudtrail_multi_region_enabled", "cloudtrail_log_file_validation_enabled"], "Attributes": [{"Section": "21 CFR Part 11"}]},
+    {"Id": "11.300", "Description": "Controls for identification codes / passwords.", "Checks": ["iam_password_policy_minimum_length_14", "iam_user_mfa_enabled_console_access"], "Attributes": [{"Section": "21 CFR Part 11"}]},
+    {"Id": "Annex11.6", "Description": "Data integrity — electronic records.", "Checks": ["s3_bucket_object_versioning", "s3_bucket_object_lock"], "Attributes": [{"Section": "EU Annex 11"}]}
+  ]
+}

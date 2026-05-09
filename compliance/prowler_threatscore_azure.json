@@ -1,0 +1,12 @@
+{
+  "Framework": "Prowler ThreatScore",
+  "Version": "2025",
+  "Provider": "azure",
+  "Requirements": [
+    {"Id": "TS.Storage.Public", "Description": "Public storage accounts.", "Checks": ["storage_account_public_access_level_is_private"], "Attributes": [{"Pillar": "Data Exposure", "Weight": 9}]},
+    {"Id": "TS.Storage.SharedKey", "Description": "Shared-key access enabled.", "Checks": ["storage_account_shared_key_access_disabled"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 7}]},
+    {"Id": "TS.KeyVault.Public", "Description": "Key Vault publicly reachable.", "Checks": ["keyvault_public_network_access_disabled"], "Attributes": [{"Pillar": "Network Exposure", "Weight": 8}]},
+    {"Id": "TS.KeyVault.NoPurge", "Description": "Key Vault without purge protection.", "Checks": ["keyvault_purge_protection_enabled", "keyvault_soft_delete_enabled"], "Attributes": [{"Pillar": "Recovery", "Weight": 6}]},
+    {"Id": "TS.VM.UnencryptedDisk", "Description": "Unencrypted VM OS disk.", "Checks": ["compute_vm_os_disk_encryption_enabled"], "Attributes": [{"Pillar": "Data Exposure", "Weight": 8}]}
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "Framework": "Prowler ThreatScore",
+  "Version": "2025",
+  "Provider": "gcp",
+  "Requirements": [
+    {"Id": "TS.IAM.Primitive", "Description": "Primitive roles in use.", "Checks": ["iam_avoid_primitive_roles"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 8}]},
+    {"Id": "TS.IAM.SaAdmin", "Description": "Service account with admin privileges.", "Checks": ["iam_no_service_account_with_admin_privileges", "iam_sa_no_admin_privileges"], "Attributes": [{"Pillar": "Identity & Access", "Weight": 9}]},
+    {"Id": "TS.Storage.Public", "Description": "Public storage buckets.", "Checks": ["storage_bucket_not_publicly_accessible", "storage_bucket_public_access_prevention"], "Attributes": [{"Pillar": "Data Exposure", "Weight": 9}]},
+    {"Id": "TS.Compute.OpenSSH", "Description": "SSH open to internet.", "Checks": ["compute_firewall_rule_no_ingress_0_0_0_0_22"], "Attributes": [{"Pillar": "Network Exposure", "Weight": 8}]},
+    {"Id": "TS.Compute.OpenRDP", "Description": "RDP open to internet.", "Checks": ["compute_firewall_rule_no_ingress_0_0_0_0_3389"], "Attributes": [{"Pillar": "Network Exposure", "Weight": 8}]}
+  ]
+}

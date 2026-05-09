@@ -1,0 +1,12 @@
+{
+  "Framework": "CSA Cloud Controls Matrix",
+  "Version": "4.0",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "IAM-02", "Description": "Strong Password Policy.", "Checks": ["iam_password_policy_minimum_length_14", "iam_password_policy_symbol"], "Attributes": [{"Domain": "Identity & Access Management"}]},
+    {"Id": "IAM-06", "Description": "User Access Restriction / Authorization (Least privilege).", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Domain": "Identity & Access Management"}]},
+    {"Id": "CEK-03", "Description": "Data Encryption.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Domain": "Cryptography, Encryption & Key Management"}]},
+    {"Id": "LOG-07", "Description": "Logging — Audit Logs.", "Checks": ["cloudtrail_multi_region_enabled", "vpc_flow_logs_enabled"], "Attributes": [{"Domain": "Logging and Monitoring"}]},
+    {"Id": "TVM-08", "Description": "Threat Detection.", "Checks": ["guardduty_is_enabled", "cloudtrail_threat_detection_privilege_escalation"], "Attributes": [{"Domain": "Threat & Vulnerability Management"}]}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "Framework": "CIS Microsoft Azure Foundations Benchmark",
+  "Version": "2.0.0",
+  "Provider": "azure",
+  "Requirements": [
+    {"Id": "3.1", "Description": "Storage Account: secure transfer required.", "Checks": ["storage_account_secure_transfer_required"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "3.3", "Description": "Storage account public access level is private.", "Checks": ["storage_account_public_access_level_is_private"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "3.7", "Description": "Storage account default network access rule is Deny.", "Checks": ["storage_account_default_network_access_rule_deny"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "8.1", "Description": "Key Vault: soft-delete enabled.", "Checks": ["keyvault_soft_delete_enabled"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "8.2", "Description": "Key Vault: purge protection enabled.", "Checks": ["keyvault_purge_protection_enabled"], "Attributes": [{"Profile": "Level 1"}]},
+    {"Id": "7.1", "Description": "VM: OS disk encryption.", "Checks": ["compute_vm_os_disk_encryption_enabled"], "Attributes": [{"Profile": "Level 1"}]}
+  ]
+}

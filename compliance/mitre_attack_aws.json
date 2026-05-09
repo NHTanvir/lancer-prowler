@@ -1,0 +1,14 @@
+{
+  "Framework": "MITRE ATT&CK",
+  "Version": "v14",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "T1078.004", "Description": "Valid Accounts: Cloud Accounts.", "Checks": ["iam_user_no_setup_initial_access_key", "iam_user_two_active_access_key", "iam_rotate_access_key_90_days"], "Attributes": [{"Tactic": "Initial Access"}]},
+    {"Id": "T1098.001", "Description": "Account Manipulation: Additional Cloud Credentials.", "Checks": ["iam_no_root_access_key", "iam_user_two_active_access_key"], "Attributes": [{"Tactic": "Persistence"}]},
+    {"Id": "T1078", "Description": "Valid Accounts.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_root_mfa_enabled"], "Attributes": [{"Tactic": "Defense Evasion"}]},
+    {"Id": "T1530", "Description": "Data from Cloud Storage.", "Checks": ["s3_bucket_public_access", "s3_account_level_public_access_blocks"], "Attributes": [{"Tactic": "Collection"}]},
+    {"Id": "T1562.008", "Description": "Disable or Modify Cloud Logs.", "Checks": ["cloudtrail_log_file_validation_enabled", "cloudtrail_multi_region_enabled"], "Attributes": [{"Tactic": "Defense Evasion"}]},
+    {"Id": "T1078.004-PE", "Description": "Privilege Escalation via cloud policies.", "Checks": ["iam_policy_allows_privilege_escalation", "cloudtrail_threat_detection_privilege_escalation"], "Attributes": [{"Tactic": "Privilege Escalation"}]},
+    {"Id": "T1580", "Description": "Cloud Infrastructure Discovery.", "Checks": ["cloudtrail_threat_detection_enumeration"], "Attributes": [{"Tactic": "Discovery"}]}
+  ]
+}

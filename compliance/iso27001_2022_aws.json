@@ -1,0 +1,12 @@
+{
+  "Framework": "ISO/IEC 27001",
+  "Version": "2022",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "A.5.15", "Description": "Access control.", "Checks": ["iam_inline_policy_no_administrative_privileges", "iam_policy_allows_privilege_escalation"], "Attributes": [{"Annex": "A.5"}]},
+    {"Id": "A.5.34", "Description": "Privacy and protection of PII.", "Checks": ["s3_bucket_default_encryption", "s3_bucket_secure_transport_policy"], "Attributes": [{"Annex": "A.5"}]},
+    {"Id": "A.8.5", "Description": "Secure authentication.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_root_mfa_enabled", "iam_root_hardware_mfa_enabled"], "Attributes": [{"Annex": "A.8"}]},
+    {"Id": "A.8.16", "Description": "Monitoring activities.", "Checks": ["cloudtrail_multi_region_enabled", "vpc_flow_logs_enabled", "guardduty_is_enabled"], "Attributes": [{"Annex": "A.8"}]},
+    {"Id": "A.8.24", "Description": "Use of cryptography.", "Checks": ["kms_cmk_rotation_enabled", "ec2_ebs_default_encryption", "rds_instance_encrypted"], "Attributes": [{"Annex": "A.8"}]}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "Framework": "FedRAMP Low Baseline (NIST 800-53 rev4)",
+  "Version": "rev4",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "AC-2", "Description": "Account Management.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_rotate_access_key_90_days"], "Attributes": [{"Family": "Access Control"}]},
+    {"Id": "AU-2", "Description": "Audit Events.", "Checks": ["cloudtrail_multi_region_enabled"], "Attributes": [{"Family": "Audit and Accountability"}]},
+    {"Id": "IA-2", "Description": "Identification and Authentication (MFA).", "Checks": ["iam_root_mfa_enabled", "iam_user_mfa_enabled_console_access"], "Attributes": [{"Family": "Identification and Authentication"}]},
+    {"Id": "SC-13", "Description": "Cryptographic Protection.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption"], "Attributes": [{"Family": "System and Communications Protection"}]}
+  ]
+}

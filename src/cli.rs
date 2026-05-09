@@ -211,9 +211,20 @@ pub struct ScanArgs {
     #[arg(long)]
     pub fixer_config: Option<String>,
 
+    /// Emit ThreatScore in OCSF + summary (plan.md line 277).
+    #[arg(long)]
+    pub threatscore: bool,
+
+    /// User-supplied compliance framework file (YAML / JSON). May be repeated.
+    /// Plan line 251 — custom-framework loader.
+    #[arg(long, alias = "custom-compliance")]
+    pub custom_compliance_file: Vec<String>,
+
     // ── Azure ────────────────────────────────────────────────────────────────
     #[arg(long, help = "Azure region (repeatable)")]
     pub azure_region: Vec<String>,
+    #[arg(long, help = "Azure subscription ID (alias: --azure-subscription-id)", alias = "azure-subscription-id")]
+    pub subscription_id: Option<String>,
     #[arg(long, help = "Azure tenant ID")]
     pub tenant_id: Option<String>,
     #[arg(long, help = "Azure client ID")]
@@ -236,6 +247,8 @@ pub struct ScanArgs {
     pub impersonate_service_account: Option<String>,
     #[arg(long, help = "GCP organization ID")]
     pub organization_id: Option<String>,
+    #[arg(long, help = "GCP project ID (repeatable; default: all visible projects)")]
+    pub project_id: Vec<String>,
     #[arg(long, help = "Exclude this GCP project (repeatable)")]
     pub excluded_project_id: Vec<String>,
 
@@ -317,6 +330,15 @@ pub enum ProviderArg {
     Cloudflare,
     Iac,
     ContainerImage,
+    MongodbAtlas,
+    Workspace,
+    Openstack,
+    Vercel,
+    Okta,
+    Nhn,
+    Scaleway,
+    Stackit,
+    Vmware,
 }
 
 impl std::fmt::Display for ProviderArg {
@@ -333,6 +355,15 @@ impl std::fmt::Display for ProviderArg {
             ProviderArg::Cloudflare => "cloudflare",
             ProviderArg::Iac => "iac",
             ProviderArg::ContainerImage => "container-image",
+            ProviderArg::MongodbAtlas => "mongodb-atlas",
+            ProviderArg::Workspace => "workspace",
+            ProviderArg::Openstack => "openstack",
+            ProviderArg::Vercel => "vercel",
+            ProviderArg::Okta => "okta",
+            ProviderArg::Nhn => "nhn",
+            ProviderArg::Scaleway => "scaleway",
+            ProviderArg::Stackit => "stackit",
+            ProviderArg::Vmware => "vmware",
         };
         write!(f, "{s}")
     }

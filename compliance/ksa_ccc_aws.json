@@ -1,0 +1,12 @@
+{
+  "Framework": "KSA Cybersecurity Controls — Cloud (CCC)",
+  "Version": "1.0",
+  "Provider": "aws",
+  "Requirements": [
+    {"Id": "1-1", "Description": "Cybersecurity strategy.", "Checks": ["config_recorder_all_regions_enabled"], "Attributes": [{"Source": "NCA CCC"}]},
+    {"Id": "2-3", "Description": "Identity & access management.", "Checks": ["iam_user_mfa_enabled_console_access", "iam_inline_policy_no_administrative_privileges"], "Attributes": [{"Source": "NCA CCC"}]},
+    {"Id": "2-5", "Description": "Cryptography.", "Checks": ["s3_bucket_default_encryption", "ec2_ebs_default_encryption"], "Attributes": [{"Source": "NCA CCC"}]},
+    {"Id": "3-1", "Description": "Logging & monitoring.", "Checks": ["cloudtrail_multi_region_enabled", "vpc_flow_logs_enabled"], "Attributes": [{"Source": "NCA CCC"}]},
+    {"Id": "4-3", "Description": "Threat management.", "Checks": ["guardduty_is_enabled", "cloudtrail_threat_detection_privilege_escalation"], "Attributes": [{"Source": "NCA CCC"}]}
+  ]
+}
