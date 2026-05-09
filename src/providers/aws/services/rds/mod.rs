@@ -124,14 +124,14 @@ async fn fetch_instances(client: &RdsClient, region: &str) -> Vec<RdsInstance> {
                     let arn = db.db_instance_arn().unwrap_or("").to_string();
                     let engine = db.engine().unwrap_or("").to_string();
                     let engine_version = db.engine_version().unwrap_or("").to_string();
-                    let storage_encrypted = db.storage_encrypted();
-                    let publicly_accessible = db.publicly_accessible();
-                    let multi_az = db.multi_az();
-                    let backup_retention_period = db.backup_retention_period();
-                    let auto_minor_version_upgrade = db.auto_minor_version_upgrade();
+                    let storage_encrypted = db.storage_encrypted().unwrap_or(false);
+                    let publicly_accessible = db.publicly_accessible().unwrap_or(false);
+                    let multi_az = db.multi_az().unwrap_or(false);
+                    let backup_retention_period = db.backup_retention_period().unwrap_or(0);
+                    let auto_minor_version_upgrade = db.auto_minor_version_upgrade().unwrap_or(false);
                     let master_username = db.master_username().unwrap_or("").to_string();
                     let db_instance_class = db.db_instance_class().unwrap_or("").to_string();
-                    let deletion_protection = db.deletion_protection();
+                    let deletion_protection = db.deletion_protection().unwrap_or(false);
                     let enhanced_monitoring_enabled =
                         db.enhanced_monitoring_resource_arn().is_some();
                     let performance_insights_enabled =
@@ -192,7 +192,7 @@ async fn fetch_snapshots(client: &RdsClient, region: &str) -> Vec<RdsSnapshot> {
                     let snapshot_id = snap.db_snapshot_identifier().unwrap_or("").to_string();
                     let arn = snap.db_snapshot_arn().unwrap_or("").to_string();
                     let db_instance_id = snap.db_instance_identifier().unwrap_or("").to_string();
-                    let encrypted = snap.encrypted();
+                    let encrypted = snap.encrypted().unwrap_or(false);
                     let snapshot_type = snap.snapshot_type().unwrap_or("manual").to_string();
 
                     // Check whether this snapshot is publicly accessible

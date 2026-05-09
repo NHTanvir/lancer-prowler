@@ -84,7 +84,7 @@ async fn fetch_secrets_for_region(
                 for s in resp.secret_list() {
                     let name = s.name().unwrap_or("").to_string();
                     let arn = s.arn().unwrap_or("").to_string();
-                    let rotation_enabled = s.rotation_enabled();
+                    let rotation_enabled = s.rotation_enabled().unwrap_or(false);
                     let rotation_lambda_arn = s.rotation_lambda_arn().map(|a| a.to_string());
                     let last_rotated_date = s
                         .last_rotated_date()

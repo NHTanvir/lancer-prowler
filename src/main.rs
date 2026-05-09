@@ -15,6 +15,7 @@ use clap::Parser;
 use cli::{Cli, Commands, OutputFormatArg, ProviderArg};
 use models::CheckReport;
 use output::{write_findings, OutputFormat};
+use provider::Provider;
 
 use providers::aws::checks::iam::{
     iam_avoid_root_usage::IamAvoidRootUsage,

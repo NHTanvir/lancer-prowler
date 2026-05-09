@@ -71,7 +71,7 @@ async fn fetch_hub_for_region(
         Ok(resp) => {
             let hub_arn = resp.hub_arn().unwrap_or("").to_string();
             let subscribed_at = resp.subscribed_at().unwrap_or("").to_string();
-            let auto_enable_controls = resp.auto_enable_controls();
+            let auto_enable_controls = resp.auto_enable_controls().unwrap_or(false);
 
             Some(SecurityHubHub {
                 hub_arn,
