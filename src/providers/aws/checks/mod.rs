@@ -3,4 +3,7 @@ pub mod cloudtrail;
 pub mod ec2;
 pub mod iam;
 pub mod kms;
+pub mod lambda;
+pub mod rds;
 pub mod s3;
+pub mod vpc;

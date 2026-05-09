@@ -96,12 +96,39 @@ use providers::aws::checks::kms::{
     kms_cmk_rotation_enabled::KmsCmkRotationEnabled,
     kms_key_not_disabled::KmsKeyNotDisabled,
 };
+use providers::aws::checks::vpc::{
+    vpc_different_regions::VpcDifferentRegions,
+    vpc_endpoint_connections_trust_boundaries::VpcEndpointConnectionsTrustBoundaries,
+    vpc_flow_logs_enabled::VpcFlowLogsEnabled,
+    vpc_peering_routing_tables_with_least_privilege::VpcPeeringRoutingTablesWithLeastPrivilege,
+    vpc_subnet_no_public_ip_by_default::VpcSubnetNoPublicIpByDefault,
+};
+use providers::aws::checks::rds::{
+    rds_instance_backup_enabled::RdsInstanceBackupEnabled,
+    rds_instance_default_admin::RdsInstanceDefaultAdmin,
+    rds_instance_encrypted::RdsInstanceEncrypted,
+    rds_instance_minor_version_upgrade_enabled::RdsInstanceMinorVersionUpgradeEnabled,
+    rds_instance_multi_az::RdsInstanceMultiAz,
+    rds_instance_public_access::RdsInstancePublicAccess,
+    rds_instance_storage_encrypted::RdsInstanceStorageEncrypted,
+    rds_snapshots_encrypted::RdsSnapshotsEncrypted,
+    rds_snapshots_public_access::RdsSnapshotsPublicAccess,
+};
+use providers::aws::checks::lambda::{
+    lambda_function_environment_variables_encrypted::LambdaFunctionEnvironmentVariablesEncrypted,
+    lambda_function_in_vpc::LambdaFunctionInVpc,
+    lambda_function_not_publicly_accessible::LambdaFunctionNotPubliclyAccessible,
+    lambda_function_url_public::LambdaFunctionUrlPublic,
+};
 use providers::aws::services::awsconfig::AwsConfigService;
 use providers::aws::services::cloudtrail::CloudtrailService;
 use providers::aws::services::ec2::Ec2Service;
 use providers::aws::services::iam::IamService;
 use providers::aws::services::kms::KmsService;
+use providers::aws::services::lambda::LambdaService;
+use providers::aws::services::rds::RdsService;
 use providers::aws::services::s3::S3Service;
+use providers::aws::services::vpc::VpcService;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -319,6 +346,42 @@ fn all_iam_checks() -> Vec<Box<dyn check::Check>> {
     ]
 }
 
+/// Build the complete list of VPC check instances.
+fn all_vpc_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(VpcFlowLogsEnabled),
+        Box::new(VpcSubnetNoPublicIpByDefault),
+        Box::new(VpcDifferentRegions),
+        Box::new(VpcEndpointConnectionsTrustBoundaries),
+        Box::new(VpcPeeringRoutingTablesWithLeastPrivilege),
+    ]
+}
+
+/// Build the complete list of RDS check instances.
+fn all_rds_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(RdsInstanceEncrypted),
+        Box::new(RdsInstancePublicAccess),
+        Box::new(RdsInstanceDefaultAdmin),
+        Box::new(RdsInstanceBackupEnabled),
+        Box::new(RdsInstanceMultiAz),
+        Box::new(RdsInstanceMinorVersionUpgradeEnabled),
+        Box::new(RdsInstanceStorageEncrypted),
+        Box::new(RdsSnapshotsPublicAccess),
+        Box::new(RdsSnapshotsEncrypted),
+    ]
+}
+
+/// Build the complete list of Lambda check instances.
+fn all_lambda_checks() -> Vec<Box<dyn check::Check>> {
+    vec![
+        Box::new(LambdaFunctionUrlPublic),
+        Box::new(LambdaFunctionNotPubliclyAccessible),
+        Box::new(LambdaFunctionEnvironmentVariablesEncrypted),
+        Box::new(LambdaFunctionInVpc),
+    ]
+}
+
 /// Build the complete list of EC2 check instances.
 fn all_ec2_checks() -> Vec<Box<dyn check::Check>> {
     vec![
@@ -531,6 +594,105 @@ async fn run_scan(provider: &providers::aws::AwsProvider) -> Vec<CheckReport> {
     println!("  [scan] Running {} AWS Config checks…", awsconfig_checks.len());
     for c in &awsconfig_checks {
         findings.extend(c.execute(&awsconfig_service));
+    }
+
+    // ── VPC ───────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching VPC state…");
+    let vpc_service = match VpcService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching VPC state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no VPC/RDS/Lambda) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] VPC state fetched — {} VPC(s), {} subnet(s), {} peering connection(s) (stub mode)",
+        vpc_service.vpcs.len(),
+        vpc_service.subnets.len(),
+        vpc_service.peering_connections.len(),
+    );
+
+    let vpc_checks = all_vpc_checks();
+    println!("  [scan] Running {} VPC checks…", vpc_checks.len());
+    for c in &vpc_checks {
+        findings.extend(c.execute(&vpc_service));
+    }
+
+    // ── RDS ───────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching RDS state…");
+    let rds_service = match RdsService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching RDS state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no RDS/Lambda) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] RDS state fetched — {} instance(s), {} snapshot(s)",
+        rds_service.instances.len(),
+        rds_service.snapshots.len(),
+    );
+
+    let rds_checks = all_rds_checks();
+    println!("  [scan] Running {} RDS checks…", rds_checks.len());
+    for c in &rds_checks {
+        findings.extend(c.execute(&rds_service));
+    }
+
+    // ── Lambda ────────────────────────────────────────────────────────────────
+    println!("  [scan] Fetching Lambda state…");
+    let lambda_service = match LambdaService::new(
+        &provider.config,
+        provider.account_id.clone(),
+        provider.regions(),
+    )
+    .await
+    {
+        Ok(svc) => svc,
+        Err(e) => {
+            eprintln!("  [scan] ERROR fetching Lambda state: {:#}", e);
+            let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
+            let fail = findings.iter().filter(|r| r.status == models::Status::Fail).count();
+            println!(
+                "  [scan] Complete (no Lambda) — {} findings ({} PASS, {} FAIL)",
+                findings.len(), pass, fail
+            );
+            return findings;
+        }
+    };
+    println!(
+        "  [scan] Lambda state fetched — {} function(s)",
+        lambda_service.functions.len(),
+    );
+
+    let lambda_checks = all_lambda_checks();
+    println!("  [scan] Running {} Lambda checks…", lambda_checks.len());
+    for c in &lambda_checks {
+        findings.extend(c.execute(&lambda_service));
     }
 
     let pass = findings.iter().filter(|r| r.status == models::Status::Pass).count();
